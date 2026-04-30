@@ -15,6 +15,8 @@ HERMES_HOME_DIR="${HERMES_HOME:-$HOME/.hermes}"
 SKIP_FOUNDRY=0
 SKIP_ESMFOLD_BUILD=0
 SKIP_SMOKE_TESTS=0
+INSTALL_NVIDIA_DRIVER="${HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER:-auto}"
+NVIDIA_DRIVER_PACKAGE="${HERMES_PROTEIN_NVIDIA_DRIVER_PACKAGE:-auto}"
 
 usage() {
   cat <<'EOF'
@@ -24,6 +26,11 @@ Options:
   --skip-foundry        Do not pull/check the Foundry image for RFD3/ProteinMPNN
   --skip-esmfold-build  Do not build/check the local ESMFold image
   --skip-smoke-tests    Do not run GPU/tool smoke tests after pull/build
+  --install-nvidia-driver
+                        Install the recommended Ubuntu NVIDIA compute driver if missing
+  --no-install-nvidia-driver
+                        Do not prompt to install an NVIDIA driver
+  --driver-package PKG  Install a specific driver package instead of ubuntu-drivers auto-detect
   -h, --help            Show this help
 
 Environment overrides:
@@ -32,6 +39,8 @@ Environment overrides:
   HERMES_PROTEIN_ESMFOLD_IMAGE           Default: hermes-esmfold:latest
   HERMES_PROTEIN_WORKSPACE_ROOT          Default: $HERMES_HOME/protein-design
   HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS Default: 7200
+  HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER   auto|1|0, default: auto
+  HERMES_PROTEIN_NVIDIA_DRIVER_PACKAGE   Default: auto
 EOF
 }
 
@@ -40,6 +49,17 @@ while [[ $# -gt 0 ]]; do
     --skip-foundry) SKIP_FOUNDRY=1 ;;
     --skip-esmfold-build) SKIP_ESMFOLD_BUILD=1 ;;
     --skip-smoke-tests) SKIP_SMOKE_TESTS=1 ;;
+    --install-nvidia-driver) INSTALL_NVIDIA_DRIVER=1 ;;
+    --no-install-nvidia-driver) INSTALL_NVIDIA_DRIVER=0 ;;
+    --driver-package)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "--driver-package requires a package name" >&2
+        exit 2
+      fi
+      NVIDIA_DRIVER_PACKAGE="$1"
+      INSTALL_NVIDIA_DRIVER=1
+      ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -55,6 +75,42 @@ log() {
 
 warn() {
   printf '\nWARN: %s\n' "$*" >&2
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|y|Y|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_falsey() {
+  case "${1:-}" in
+    0|false|FALSE|no|NO|n|N|off|OFF) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+prompt_yes_no() {
+  local question="$1"
+  local default="${2:-no}"
+  local prompt="[y/N]"
+  if [[ "$default" == "yes" ]]; then
+    prompt="[Y/n]"
+  fi
+
+  if [[ ! -t 0 ]]; then
+    [[ "$default" == "yes" ]]
+    return
+  fi
+
+  local reply
+  read -r -p "$question $prompt " reply
+  reply="${reply:-$default}"
+  case "$reply" in
+    y|Y|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 docker_cmd() {
@@ -74,6 +130,99 @@ require_docker() {
     exit 1
   fi
   docker_cmd version >/dev/null
+}
+
+is_ubuntu() {
+  [[ -r /etc/os-release ]] || return 1
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  [[ "${ID:-}" == "ubuntu" ]]
+}
+
+has_nvidia_pci_device() {
+  command -v lspci >/dev/null 2>&1 || return 2
+  lspci | grep -qi "nvidia"
+}
+
+host_nvidia_smi_works() {
+  command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/tmp/hermes-host-nvidia-smi.txt 2>&1
+}
+
+install_nvidia_driver() {
+  if ! is_ubuntu; then
+    warn "Automatic NVIDIA driver installation is only implemented for Ubuntu."
+    warn "Install the driver manually, then verify: nvidia-smi"
+    return 1
+  fi
+  if ! command -v sudo >/dev/null 2>&1; then
+    warn "sudo is required to install the NVIDIA driver automatically."
+    return 1
+  fi
+
+  log "Installing NVIDIA driver packages"
+  sudo apt-get update
+  sudo apt-get install -y --no-install-recommends \
+    ubuntu-drivers-common \
+    pciutils \
+    "linux-headers-$(uname -r)"
+
+  if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi enabled; then
+    warn "Secure Boot appears to be enabled. Ubuntu may prompt for MOK enrollment during driver installation."
+  fi
+
+  log "Available NVIDIA compute drivers"
+  sudo ubuntu-drivers list --gpgpu || true
+
+  if [[ "$NVIDIA_DRIVER_PACKAGE" != "auto" ]]; then
+    sudo apt-get install -y "$NVIDIA_DRIVER_PACKAGE"
+  else
+    sudo ubuntu-drivers install --gpgpu
+  fi
+
+  cat <<EOF
+
+NVIDIA driver installation finished.
+
+A reboot is normally required before nvidia-smi and Docker GPU containers work:
+  sudo reboot
+
+After reboot, rerun:
+  scripts/setup_protein_design_local.sh
+
+EOF
+  return 0
+}
+
+ensure_nvidia_driver() {
+  if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
+    return 0
+  fi
+  if host_nvidia_smi_works; then
+    return 0
+  fi
+
+  warn "The host NVIDIA driver is not working. RFD3, ProteinMPNN, and ESMFold need a working driver for local GPU compute."
+  if has_nvidia_pci_device; then
+    warn "An NVIDIA PCI device was detected, but nvidia-smi is unavailable or failing."
+  else
+    case $? in
+      1) warn "No NVIDIA PCI device was detected. Make sure this is a GPU machine before installing drivers." ;;
+      2) warn "lspci is unavailable, so GPU hardware detection was skipped." ;;
+    esac
+  fi
+
+  if is_truthy "$INSTALL_NVIDIA_DRIVER"; then
+    install_nvidia_driver
+    return 2
+  fi
+  if is_falsey "$INSTALL_NVIDIA_DRIVER"; then
+    return 1
+  fi
+  if prompt_yes_no "Install the recommended Ubuntu NVIDIA compute driver now? This requires sudo and usually a reboot." "yes"; then
+    install_nvidia_driver
+    return 2
+  fi
+  return 1
 }
 
 write_config() {
@@ -117,13 +266,30 @@ PY
 
 check_gpu_runtime() {
   if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
-    return
+    return 0
+  fi
+
+  log "Checking host NVIDIA driver"
+  if ! host_nvidia_smi_works; then
+    warn "Host nvidia-smi failed. Inspect /tmp/hermes-host-nvidia-smi.txt and fix the NVIDIA driver before running local protein-design compute."
+    return 1
   fi
 
   log "Checking Docker GPU runtime"
   if ! docker_cmd run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi; then
-    warn "Docker GPU check failed. HTTPS/API protein tools will still work, but RFD3/ProteinMPNN/ESMFold need Docker GPU access for practical local compute."
+    if command -v nvidia-ctk >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1; then
+      warn "Docker GPU check failed. Reconfiguring NVIDIA Container Toolkit and retrying once."
+      sudo nvidia-ctk runtime configure --runtime=docker || true
+      sudo systemctl restart docker || true
+      if docker_cmd run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi; then
+        return 0
+      fi
+    fi
+    warn "Docker GPU check failed. The host driver may be missing, NVIDIA Container Toolkit may be misconfigured, or Docker may need restart."
+    warn "If the error mentions libnvidia-ml.so.1, fix the host NVIDIA driver first."
+    return 1
   fi
+  return 0
 }
 
 setup_foundry() {
@@ -167,9 +333,35 @@ setup_esmfold() {
 
 require_docker
 write_config
-check_gpu_runtime
+DRIVER_INSTALL_STATUS=0
+ensure_nvidia_driver || DRIVER_INSTALL_STATUS=$?
+if [[ "$DRIVER_INSTALL_STATUS" == "2" ]]; then
+  exit 3
+fi
+GPU_READY=1
+if ! check_gpu_runtime; then
+  GPU_READY=0
+  SKIP_SMOKE_TESTS=1
+  warn "Continuing image pull/build, but skipping GPU command smoke tests."
+fi
 setup_foundry
 setup_esmfold
+
+if [[ "$GPU_READY" == "0" ]]; then
+  cat <<EOF
+
+Protein-design images/config were prepared, but local GPU compute is not ready.
+
+Fix NVIDIA driver + Docker GPU runtime, then verify:
+  nvidia-smi
+  docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+
+Then re-run:
+  scripts/setup_protein_design_local.sh
+
+EOF
+  exit 2
+fi
 
 cat <<EOF
 

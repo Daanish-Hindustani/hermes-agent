@@ -746,20 +746,37 @@ def _run_post_setup(post_setup_key: str):
             _print_warning("    Protein-design setup script not found.")
             _print_info("    Run manually: docker pull rosettacommons/foundry:latest")
             _print_info("    Then build: docker build -t hermes-esmfold:latest -f plugins/protein-design/docker/esmfold.Dockerfile plugins/protein-design/docker")
-            return
+            return False
 
         _print_info("    Setting up local protein-design compute.")
         _print_info("    This pulls/builds large Docker images and may take several minutes.")
         result = subprocess.run([str(script)], cwd=str(PROJECT_ROOT), text=True)
         if result.returncode == 0:
             _print_success("    Protein-design local compute is ready")
+            return True
+        if result.returncode == 3:
+            _print_warning("    NVIDIA driver installation finished. Reboot is required before local protein-design compute can run.")
+            _print_info("    Run after reboot:")
+            _print_info("      nvidia-smi")
+            _print_info("      docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi")
+            _print_info("      scripts/setup_protein_design_local.sh")
+            return False
+        if result.returncode == 2:
+            _print_warning("    Protein-design images/config were prepared, but GPU compute is not ready.")
+            _print_info("    Fix NVIDIA driver/runtime, then run:")
+            _print_info("      nvidia-smi")
+            _print_info("      docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi")
+            _print_info("      scripts/setup_protein_design_local.sh")
+            return False
         else:
             _print_warning("    Protein-design local compute setup did not complete.")
             _print_info("    Re-run manually: scripts/setup_protein_design_local.sh")
+            return False
 
     elif post_setup_key == "protein_design_search_only":
         _print_info("    Skipped local model setup.")
         _print_info("    Later, run: scripts/setup_protein_design_local.sh")
+        return True
 
 
 # ─── Platform / Toolset Helpers ───────────────────────────────────────────────
@@ -1753,7 +1770,9 @@ def _configure_provider(provider: dict, config: dict):
 
     # Run post-setup hooks if needed
     if provider.get("post_setup") and all_configured:
-        _run_post_setup(provider["post_setup"])
+        post_setup_ok = _run_post_setup(provider["post_setup"])
+        if provider["post_setup"] in {"protein_design_local", "protein_design_search_only"} and not post_setup_ok:
+            return
 
     if all_configured:
         _print_success(f"  {provider['name']} configured!")
@@ -1948,8 +1967,11 @@ def _reconfigure_provider(provider: dict, config: dict):
                 break
 
     if not env_vars:
-        if provider.get("post_setup"):
-            _run_post_setup(provider["post_setup"])
+        post_setup = provider.get("post_setup")
+        if post_setup:
+            post_setup_ok = _run_post_setup(post_setup)
+            if post_setup in {"protein_design_local", "protein_design_search_only"} and not post_setup_ok:
+                return
         _print_success(f"  {provider['name']} - no configuration needed!")
         if managed_feature:
             _print_info("  Requests for this tool will be billed to your Nous subscription.")

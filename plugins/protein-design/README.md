@@ -180,11 +180,27 @@ Useful direct-run options:
 scripts/setup_protein_design_local.sh --skip-esmfold-build
 scripts/setup_protein_design_local.sh --skip-foundry
 scripts/setup_protein_design_local.sh --skip-smoke-tests
+scripts/setup_protein_design_local.sh --install-nvidia-driver
 ```
 
 This script does not install Hermes or Docker. It expects Docker to already be
 installed. For practical RFD3, ProteinMPNN, and ESMFold runs, Docker should have
 GPU access through NVIDIA Container Toolkit.
+
+If the host NVIDIA driver is missing on Ubuntu, run:
+
+```bash
+scripts/setup_protein_design_local.sh --install-nvidia-driver
+sudo reboot
+```
+
+After reboot:
+
+```bash
+nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+scripts/setup_protein_design_local.sh
+```
 
 ## Configure API-backed tools
 
@@ -382,11 +398,16 @@ num_designs 1, contig "60-80", guide_scale 1.5, num_timesteps 25.
 Run:
 
 ```bash
+nvidia-smi
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
 If that fails, install/fix NVIDIA Container Toolkit. Hermes cannot repair a
 broken Docker GPU runtime.
+
+If Docker reports `libnvidia-ml.so.1: cannot open shared object file`, the host
+NVIDIA driver library is missing or not visible. Fix `nvidia-smi` on the host
+first, then restart Docker and retry the Docker GPU check.
 
 ### RFD3 fails before generating outputs
 
