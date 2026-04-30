@@ -1,0 +1,263 @@
+#!/usr/bin/env bash
+# Set up a Lambda Labs Ubuntu GPU instance for the Hermes protein-design plugin.
+#
+# Assumptions:
+# - "Lambda" means Lambda Cloud / Lambda Labs GPU VM, not AWS Lambda.
+# - The instance is Ubuntu 22.04 with Lambda Stack / NVIDIA drivers installed.
+# - Run this from the hermes-agent repository root after cloning it.
+
+set -euo pipefail
+
+FOUNDRY_IMAGE_DEFAULT="rosettacommons/foundry:latest"
+ESMFOLD_IMAGE_DEFAULT="hermes-esmfold:latest"
+
+FOUNDRY_IMAGE="${HERMES_PROTEIN_FOUNDRY_IMAGE:-$FOUNDRY_IMAGE_DEFAULT}"
+ESMFOLD_IMAGE="${HERMES_PROTEIN_ESMFOLD_IMAGE:-$ESMFOLD_IMAGE_DEFAULT}"
+HERMES_HOME_DIR="${HERMES_HOME:-$HOME/.hermes}"
+SKIP_HERMES_INSTALL=0
+SKIP_IMAGES=0
+SKIP_ESMFOLD_BUILD=0
+SKIP_DOCKER_SETUP=0
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/setup_protein_design_lambda.sh [options]
+
+Options:
+  --skip-hermes-install   Do not run ./setup-hermes.sh
+  --skip-docker-setup     Do not install/configure Docker or NVIDIA Container Toolkit
+  --skip-images           Do not pull/build protein-design Docker images
+  --skip-esmfold-build    Pull Foundry, but do not build the ESMFold image
+  -h, --help              Show this help
+
+Environment overrides:
+  HERMES_HOME                         Default: ~/.hermes
+  HERMES_PROTEIN_FOUNDRY_IMAGE        Default: rosettacommons/foundry:latest
+  HERMES_PROTEIN_ESMFOLD_IMAGE        Default: hermes-esmfold:latest
+  HERMES_PROTEIN_WORKSPACE_ROOT       Default: $HERMES_HOME/protein-design
+  HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS Default: 7200
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-hermes-install) SKIP_HERMES_INSTALL=1 ;;
+    --skip-docker-setup) SKIP_DOCKER_SETUP=1 ;;
+    --skip-images) SKIP_IMAGES=1 ;;
+    --skip-esmfold-build) SKIP_ESMFOLD_BUILD=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
+  esac
+  shift
+done
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+log() {
+  printf '\n==> %s\n' "$*"
+}
+
+warn() {
+  printf '\nWARN: %s\n' "$*" >&2
+}
+
+require_ubuntu() {
+  if [[ ! -r /etc/os-release ]]; then
+    warn "Cannot read /etc/os-release; continuing anyway."
+    return
+  fi
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  if [[ "${ID:-}" != "ubuntu" ]]; then
+    warn "This script is written for Ubuntu Lambda Cloud instances; detected ID=${ID:-unknown}."
+  fi
+}
+
+install_base_packages() {
+  log "Installing base packages"
+  sudo apt-get update
+  sudo apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    git \
+    jq \
+    build-essential \
+    python3-venv
+}
+
+install_docker_if_missing() {
+  if command -v docker >/dev/null 2>&1; then
+    log "Docker already installed: $(docker --version)"
+  else
+    log "Installing Docker from Ubuntu packages"
+    sudo apt-get install -y docker.io
+  fi
+
+  sudo systemctl enable --now docker
+
+  if ! groups "$USER" | grep -qE '(^| )docker( |$)'; then
+    log "Adding $USER to docker group"
+    sudo usermod -aG docker "$USER"
+    warn "Group membership changes require a new shell/login. This script uses sudo docker when needed."
+  fi
+}
+
+install_nvidia_container_toolkit() {
+  if [[ "$SKIP_DOCKER_SETUP" == "1" ]]; then
+    log "Skipping Docker/NVIDIA Container Toolkit setup"
+    return
+  fi
+
+  install_base_packages
+  install_docker_if_missing
+
+  if command -v nvidia-ctk >/dev/null 2>&1; then
+    log "nvidia-ctk already installed: $(nvidia-ctk --version 2>/dev/null | head -1)"
+  else
+    log "Installing NVIDIA Container Toolkit"
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+      | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+      | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+      | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
+    sudo apt-get update
+    sudo apt-get install -y nvidia-container-toolkit
+  fi
+
+  log "Configuring Docker NVIDIA runtime"
+  sudo nvidia-ctk runtime configure --runtime=docker
+  sudo systemctl restart docker
+}
+
+install_hermes() {
+  if [[ "$SKIP_HERMES_INSTALL" == "1" ]]; then
+    log "Skipping Hermes install"
+    return
+  fi
+
+  log "Installing Hermes into repo-local virtualenv"
+  ./setup-hermes.sh
+}
+
+enable_plugin_config() {
+  log "Writing protein-design plugin config"
+  mkdir -p "$HERMES_HOME_DIR"
+  local config_python="python3"
+  if [[ -x "$REPO_ROOT/venv/bin/python" ]]; then
+    config_python="$REPO_ROOT/venv/bin/python"
+  elif [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
+    config_python="$REPO_ROOT/.venv/bin/python"
+  fi
+
+  HERMES_HOME="$HERMES_HOME_DIR" "$config_python" - <<'PY'
+import os
+from pathlib import Path
+
+import yaml
+
+home = Path(os.environ["HERMES_HOME"]).expanduser()
+config_path = home / "config.yaml"
+config = {}
+if config_path.exists():
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+
+plugins = config.setdefault("plugins", {})
+enabled = plugins.setdefault("enabled", [])
+if "protein-design" not in enabled:
+    enabled.append("protein-design")
+
+protein = config.setdefault("protein_design", {})
+protein.setdefault("foundry_image", os.environ.get("HERMES_PROTEIN_FOUNDRY_IMAGE", "rosettacommons/foundry:latest"))
+protein.setdefault("esmfold_image", os.environ.get("HERMES_PROTEIN_ESMFOLD_IMAGE", "hermes-esmfold:latest"))
+protein.setdefault("workspace_root", os.environ.get("HERMES_PROTEIN_WORKSPACE_ROOT", str(home / "protein-design")))
+protein.setdefault("default_timeout_seconds", int(os.environ.get("HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS", "7200")))
+
+config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+print(config_path)
+PY
+}
+
+docker_cmd() {
+  if docker info >/dev/null 2>&1; then
+    docker "$@"
+  else
+    sudo docker "$@"
+  fi
+}
+
+verify_gpu_runtime() {
+  log "Checking host GPU"
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi
+  else
+    warn "nvidia-smi not found. Lambda Cloud images normally include NVIDIA drivers; check the instance image."
+  fi
+
+  log "Checking Docker GPU runtime"
+  docker_cmd run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+}
+
+install_images() {
+  if [[ "$SKIP_IMAGES" == "1" ]]; then
+    log "Skipping protein-design Docker images"
+    return
+  fi
+
+  log "Pulling Foundry image: $FOUNDRY_IMAGE"
+  docker_cmd pull "$FOUNDRY_IMAGE"
+  docker_cmd run --rm --gpus all "$FOUNDRY_IMAGE" rfd3 --help >/tmp/hermes-rfd3-help.txt
+  docker_cmd run --rm --gpus all "$FOUNDRY_IMAGE" mpnn --help >/tmp/hermes-mpnn-help.txt || \
+    warn "Foundry mpnn --help failed. The image may still work depending on its entrypoint; inspect /tmp/hermes-mpnn-help.txt."
+
+  if [[ "$SKIP_ESMFOLD_BUILD" == "1" ]]; then
+    log "Skipping ESMFold image build"
+    return
+  fi
+
+  log "Building ESMFold image: $ESMFOLD_IMAGE"
+  docker_cmd build \
+    -t "$ESMFOLD_IMAGE" \
+    -f plugins/protein-design/docker/esmfold.Dockerfile \
+    plugins/protein-design/docker
+  docker_cmd run --rm --gpus all "$ESMFOLD_IMAGE" esm-fold --help >/tmp/hermes-esmfold-help.txt
+}
+
+print_next_steps() {
+  cat <<EOF
+
+Setup complete.
+
+Next steps:
+  1. Open a fresh shell if this script added you to the docker group:
+       exec su -l "$USER"
+
+  2. Activate Hermes:
+       cd "$REPO_ROOT"
+       source venv/bin/activate
+
+  3. Start Hermes with the protein toolset available:
+       hermes
+
+  4. Smoke-test from Hermes:
+       Use pubmed_search to find recent review papers on RFdiffusion protein binder design.
+       Use rfd3_design in free_generation mode with output_name "lambda_debug",
+       num_designs 1, contig "60-80", guide_scale 1.5, num_timesteps 25.
+
+Config written under:
+  $HERMES_HOME_DIR/config.yaml
+
+Protein outputs default to:
+  ${HERMES_PROTEIN_WORKSPACE_ROOT:-$HERMES_HOME_DIR/protein-design}
+
+EOF
+}
+
+require_ubuntu
+install_nvidia_container_toolkit
+install_hermes
+enable_plugin_config
+verify_gpu_runtime
+install_images
+print_next_steps

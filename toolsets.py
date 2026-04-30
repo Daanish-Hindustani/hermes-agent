@@ -144,6 +144,15 @@ TOOLSETS = {
         ],
         "includes": []
     },
+
+    "protein_design": {
+        "description": "Protein design tools: PubMed, UniProt, RCSB, RFdiffusion3, ProteinMPNN, and ESMFold",
+        "tools": [
+            "pubmed_search", "uniprot_search", "rcsb_search",
+            "rfd3_design", "protein_mpnn_design", "esmfold_predict",
+        ],
+        "includes": []
+    },
     
     "file": {
         "description": "File manipulation tools: read, write, patch (with fuzzy matching), and search (content + files)",
