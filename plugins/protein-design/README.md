@@ -215,6 +215,16 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 scripts/setup_protein_design_local.sh
 ```
 
+If `nvidia-smi` is still reported as "command not found" after the driver
+install, rerun:
+
+```bash
+scripts/setup_protein_design_local.sh --install-nvidia-driver
+```
+
+The script will install the matching `nvidia-utils-*` package that provides
+`nvidia-smi`.
+
 ## Configure API-backed tools
 
 `uniprot_search` and `rcsb_search` do not need API keys.

@@ -148,6 +148,47 @@ host_nvidia_smi_works() {
   command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/tmp/hermes-host-nvidia-smi.txt 2>&1
 }
 
+install_nvidia_smi_utils() {
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log "Installing NVIDIA user-space utilities for nvidia-smi"
+  local candidates=()
+  local installed_driver
+  while IFS= read -r installed_driver; do
+    [[ -n "$installed_driver" ]] || continue
+    local suffix="${installed_driver#nvidia-driver-}"
+    candidates+=("nvidia-utils-$suffix" "nvidia-compute-utils-$suffix")
+  done < <(dpkg-query -W -f='${binary:Package}\n' 'nvidia-driver-*' 2>/dev/null || true)
+
+  if [[ "$NVIDIA_DRIVER_PACKAGE" == nvidia-driver-* ]]; then
+    local explicit_suffix="${NVIDIA_DRIVER_PACKAGE#nvidia-driver-}"
+    candidates=("nvidia-utils-$explicit_suffix" "nvidia-compute-utils-$explicit_suffix" "${candidates[@]}")
+  fi
+
+  local pkg
+  for pkg in "${candidates[@]}"; do
+    if apt-cache show "$pkg" >/dev/null 2>&1; then
+      sudo apt-get install -y "$pkg"
+      if command -v nvidia-smi >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+  done
+
+  local fallback
+  fallback="$(
+    apt-cache search '^nvidia-utils-[0-9]+(-server)?$' \
+      | awk '{print $1}' \
+      | sort -V \
+      | tail -1
+  )"
+  if [[ -n "$fallback" ]]; then
+    sudo apt-get install -y "$fallback"
+  fi
+}
+
 install_nvidia_driver() {
   if ! is_ubuntu; then
     warn "Automatic NVIDIA driver installation is only implemented for Ubuntu."
@@ -178,6 +219,7 @@ install_nvidia_driver() {
   else
     sudo ubuntu-drivers install --gpgpu
   fi
+  install_nvidia_smi_utils || true
 
   cat <<EOF
 
