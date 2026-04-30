@@ -24,6 +24,8 @@ proteins before deeper validation.
 4. Inspect mean pLDDT and local low-confidence regions.
 5. Reject or redesign candidates with poor global confidence, broken topology,
    or low-confidence interface/motif regions.
+6. For binder campaigns, fold enough sequence variants to compare candidates
+   across RFD3 and ProteinMPNN parameter settings.
 
 ## Interpretation
 
@@ -31,3 +33,14 @@ proteins before deeper validation.
 - High pLDDT does not prove binding, catalysis, expression, or stability.
 - Low confidence at flexible termini may be acceptable; low confidence in the
   designed core, active site, or binding interface is a serious warning.
+
+## Binder Ranking Use
+
+Use ESMFold as a triage signal, not the final binder score:
+
+- Use `num_recycles=4` for broad screening.
+- Re-run finalists with higher `num_recycles` when runtime allows.
+- Prefer candidates with confident binder cores and stable topology across close
+  sequence variants.
+- If the binder folds well but binding is uncertain, preserve it as a finalist
+  and recommend downstream interface scoring or experimental validation.

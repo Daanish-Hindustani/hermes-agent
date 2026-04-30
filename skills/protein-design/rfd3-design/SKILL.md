@@ -68,9 +68,28 @@ contigs are easy to get wrong; inspect the target structure before designing.
 
 ## Parameter Guidance
 
-- `num_designs`: start small, such as 8-32, before scaling.
+- `num_designs`: use 1-4 for input/debug checks, 8-32 for binder exploration,
+  and larger batches only after the contig/hotspot setup is producing usable
+  candidates.
 - `guide_scale`: defaults around 1.5; higher can improve designability but may
-  reduce diversity.
-- `num_timesteps`: default 200; lower is faster for debugging.
+  reduce diversity. For binders, explore roughly 1.0-2.5 around the current
+  best settings instead of jumping to extremes.
+- `num_timesteps`: default 200; use 25-50 for debugging and 100-200 for real
+  binder candidates.
 - After RFD3, use `protein_mpnn_design` to design sequences and
   `esmfold_predict` to triage foldability.
+
+## Binder Iteration
+
+For binder campaigns, do not keep rerunning identical RFD3 settings. Tune one
+or two variables per round:
+
+- Binder length range when the fold is plausible but the interface is poor.
+- `hotspot_residues` when the binder misses the intended epitope.
+- Target chain/range context when the design is conditioned on the wrong surface.
+- `guide_scale` when designs are either too unconstrained or too repetitive.
+- `num_timesteps` when debug runs pass and higher-quality candidates are needed.
+
+Record the contig, hotspots, `guide_scale`, `num_timesteps`, and output path for
+each round so later ProteinMPNN/ESMFold results can be traced back to the exact
+RFD3 settings.

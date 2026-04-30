@@ -1,7 +1,7 @@
 ---
 name: protein-binder-design
-description: Use for end-to-end protein binder design planning across literature, target lookup, structure selection, RFD3 backbone generation, ProteinMPNN sequence design, and ESMFold validation.
-version: 1.0.0
+description: "Use for iterative protein binder design campaigns: define the target and epitope, generate binder backbones with RFD3, design sequences with ProteinMPNN, fold/triage with ESMFold, rank candidates, and tune parameters across rounds."
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -12,19 +12,25 @@ metadata:
 
 # Protein Binder Design
 
-Use this skill when the user wants to design a protein binder against a target
-protein, domain, epitope, receptor, antigen, enzyme, or protein complex.
+Use this skill when the user wants to design, optimize, or rank a protein
+binder against a target protein, domain, epitope, receptor, antigen, enzyme, or
+protein complex.
 
 This is a workflow skill, not a tool wrapper. The tools are independent. Choose
-only the steps needed for the task; do not run the whole pipeline blindly.
+only the steps needed for the task; do not run the whole pipeline blindly. The
+default posture is iterative: generate a small batch, score it, change one or
+two parameters based on failure mode, and repeat until the best computational
+candidate stops improving or the user's compute budget is reached.
 
-## Binder Design Workflow
+## Campaign Workflow
 
 1. Clarify the design objective.
    - Target protein and organism
    - Desired binding region, epitope, ligand pocket, or interface
    - Constraints: binder length, oligomeric state, disulfides, forbidden motifs,
      expression host, and whether wet-lab validation is planned
+   - Compute budget: number of RFD3 rounds, designs per round, and acceptable
+     runtime
 
 2. Gather evidence with `pubmed_search` when biology or precedent is unclear.
    - Look for known binders, complexes, epitopes, mutational scans, domain
@@ -49,18 +55,90 @@ only the steps needed for the task; do not run the whole pipeline blindly.
    - Include only target chains/ranges needed for binding context.
 
 6. Run `rfd3_design` for backbone generation.
-   - Start with `num_designs=1-8` and lower `num_timesteps` for debugging.
-   - Scale only after the input spec passes validation.
+   - Start with `num_designs=1-4` and lower `num_timesteps` for input/debug
+     validation.
+   - First real round: use `num_designs=8-32`, `num_timesteps=100-200`, and the
+     most defensible contig/hotspot set.
+   - Scale only after the input spec passes validation and outputs look sane.
 
 7. Run `protein_mpnn_design` on promising backbones.
    - Use `ligand_mpnn` if ligand, ion, DNA/RNA, or atom context matters.
    - Fix residues that must remain unchanged.
-   - Sample multiple sequences for each backbone.
+   - Sample multiple sequences for each backbone. Start around
+     `temperature=0.1`; increase to `0.2-0.3` when diversity is too low.
 
 8. Run `esmfold_predict` for sequence-level triage.
    - Start with `num_recycles=4`.
    - Reject candidates with low-confidence cores, broken topology, or weak
      confidence in the interface/motif region.
+
+9. Rank candidates and choose the next round.
+   - Keep a short candidate table with backbone path, sequence path, key
+     parameters, fold confidence, observed problems, and decision.
+   - Call the current winner "best computational candidate", not "validated
+     binder".
+   - Preserve diversity: keep the top few candidates from distinct contig,
+     hotspot, length, or temperature settings.
+
+## Iteration Strategy
+
+Treat binder design as a campaign. Do not keep rerunning the same settings
+unless the previous run failed for infrastructure reasons.
+
+Recommended first campaign:
+
+1. Round 0: debug one tiny RFD3 job.
+2. Round 1: baseline design using literature/structure-derived hotspots.
+3. Round 2: vary binder length and hotspot set.
+4. Round 3: tune `guide_scale` and `num_timesteps` around the best Round 1/2
+   settings.
+5. Round 4: use ProteinMPNN temperature sweep on the best backbones.
+6. Round 5: fold the best sequence variants with higher `num_recycles`, then
+   report top candidates and remaining validation gaps.
+
+Parameter tweaks by failure mode:
+
+- Bad or invalid RFD3 inputs: re-check chain IDs, residue numbering, contig
+  format, and `target_pdb_path`; do not tune model parameters yet.
+- No plausible interface: revise `hotspot_residues`, include the correct target
+  chain/range context, try a longer binder, or modestly increase `guide_scale`.
+- Low diversity: broaden binder length range, use alternative hotspot subsets,
+  or increase ProteinMPNN temperature.
+- Low ESMFold confidence in the binder core: try shorter/tighter backbones,
+  lower ProteinMPNN temperature, or generate a fresh RFD3 batch.
+- Good fold but uncertain interface: keep as a candidate, but run another RFD3
+  round with more explicit hotspots or target context.
+- Repeated failures across rounds: stop and explain the likely blocker instead
+  of spending more compute blindly.
+
+Suggested initial parameter ranges:
+
+- Binder length: `50-90` for small epitopes, `70-120` for general binders,
+  `100-160` when a larger surface or scaffold is needed.
+- `guide_scale`: start near `1.5`; explore `1.0-2.5` in later rounds.
+- `num_timesteps`: `25-50` for debug, `100-200` for real candidates.
+- `num_designs`: `1-4` for debug, `8-32` for exploration, larger only after
+  the workflow is producing usable candidates.
+- ESMFold `num_recycles`: `4` for triage, `8-12` for finalists if runtime is
+  acceptable.
+
+## Candidate Ranking
+
+Rank by a transparent rubric. Prefer candidates that satisfy all of these:
+
+- Target structure and residue numbering were verified.
+- RFD3 generated a complete binder-target model without obvious geometry
+  problems.
+- Hotspots/epitope are represented in the design setup.
+- ProteinMPNN produced diverse sequences without obvious forbidden motifs.
+- ESMFold shows a confident binder core and no broken topology.
+- Candidate is not merely the top score from one run; it survives at least one
+  reasonable parameter perturbation or has close variants.
+
+ESMFold alone does not prove binding because it folds sequences, not binding
+affinity. If the available tools cannot score the complex interface directly,
+say so and recommend downstream validation such as structural relaxation,
+interface scoring, docking, MD, or wet-lab testing.
 
 ## Tool Independence Rule
 

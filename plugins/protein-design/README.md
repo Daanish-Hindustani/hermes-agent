@@ -243,11 +243,12 @@ export HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS=3600
 `workspace_root` is where generated FASTA/spec/output files go when the tool
 does not naturally run inside the current project directory.
 
-## Typical workflow
+## Binder campaign workflow
 
 The tools are independent. Hermes does not physically chain them together in
 code. The agent chooses which tool to call next based on the active skill and
-the user's task.
+the user's task. Binder design should be run as an iterative campaign, not as a
+single pass that declares a winner too early.
 
 1. Literature:
    - Use `pubmed_search` to gather papers and design precedent.
@@ -260,11 +261,35 @@ the user's task.
    - For binders, derive contigs from the actual target structure, e.g.
      `70-110,/0,A1-240`.
    - Put hotspot residues in `hotspot_residues`, not inside the contig.
+   - Start with a tiny debug run, then generate 8-32 candidates per real round.
 5. Sequence design:
    - Use `protein_mpnn_design` on generated RFD3 structures.
+   - Sweep sequence temperature around the most promising backbones.
 6. Fold validation:
    - Use `esmfold_predict` with `num_recycles=4` initially, then increase for
      borderline candidates.
+7. Rank and iterate:
+   - Keep a candidate table with contig, hotspots, `guide_scale`,
+     `num_timesteps`, MPNN temperature, fold confidence, and decision.
+   - Change one or two variables per round instead of rerunning identical jobs.
+   - Keep top candidates from distinct settings so the agent preserves diversity.
+   - Report the winner as the best computational candidate, not a validated
+     binder.
+
+Useful parameter moves:
+
+- Misses intended epitope: revise `hotspot_residues` or target chain/range.
+- Poor interface geometry: try a longer binder or modestly increase
+  `guide_scale`.
+- Low diversity: broaden binder length range or increase MPNN temperature.
+- Low ESMFold confidence: try shorter/tighter backbones, lower MPNN
+  temperature, or regenerate RFD3 backbones.
+- Repeated failures: stop and explain the blocker rather than spending compute
+  blindly.
+
+ESMFold is foldability triage, not binding-affinity proof. Interface scoring,
+relaxation, docking, MD, or wet-lab validation are still needed before claiming
+a binder works.
 
 ## RFD3 contig setup
 
