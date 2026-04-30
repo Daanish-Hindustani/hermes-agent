@@ -154,21 +154,60 @@ install_nvidia_smi_utils() {
   fi
 
   log "Installing NVIDIA user-space utilities for nvidia-smi"
+  sudo apt-get update
   local candidates=()
-  local installed_driver
-  while IFS= read -r installed_driver; do
-    [[ -n "$installed_driver" ]] || continue
-    local suffix="${installed_driver#nvidia-driver-}"
-    candidates+=("nvidia-utils-$suffix" "nvidia-compute-utils-$suffix")
-  done < <(dpkg-query -W -f='${binary:Package}\n' 'nvidia-driver-*' 2>/dev/null || true)
+  local installed_pkg
+  while IFS= read -r installed_pkg; do
+    [[ -n "$installed_pkg" ]] || continue
+    local suffix=""
+    case "$installed_pkg" in
+      nvidia-driver-*) suffix="${installed_pkg#nvidia-driver-}" ;;
+      nvidia-headless-*) suffix="${installed_pkg#nvidia-headless-}" ;;
+      nvidia-headless-no-dkms-*) suffix="${installed_pkg#nvidia-headless-no-dkms-}" ;;
+      nvidia-dkms-*) suffix="${installed_pkg#nvidia-dkms-}" ;;
+      libnvidia-compute-*) suffix="${installed_pkg#libnvidia-compute-}" ;;
+    esac
+    [[ -n "$suffix" ]] || continue
+    candidates+=(
+      "nvidia-utils-$suffix"
+      "nvidia-compute-utils-$suffix"
+    )
+    if [[ "$suffix" != *-server ]]; then
+      candidates+=(
+        "nvidia-utils-$suffix-server"
+        "nvidia-compute-utils-$suffix-server"
+      )
+    fi
+  done < <(
+    dpkg-query -W -f='${binary:Package}\n' \
+      'nvidia-driver-*' \
+      'nvidia-headless-*' \
+      'nvidia-headless-no-dkms-*' \
+      'nvidia-dkms-*' \
+      'libnvidia-compute-*' 2>/dev/null || true
+  )
 
   if [[ "$NVIDIA_DRIVER_PACKAGE" == nvidia-driver-* ]]; then
     local explicit_suffix="${NVIDIA_DRIVER_PACKAGE#nvidia-driver-}"
-    candidates=("nvidia-utils-$explicit_suffix" "nvidia-compute-utils-$explicit_suffix" "${candidates[@]}")
+    candidates=(
+      "nvidia-utils-$explicit_suffix"
+      "nvidia-compute-utils-$explicit_suffix"
+      "${candidates[@]}"
+    )
+  elif [[ "$NVIDIA_DRIVER_PACKAGE" == nvidia-headless-* ]]; then
+    local explicit_suffix="${NVIDIA_DRIVER_PACKAGE#nvidia-headless-}"
+    candidates=(
+      "nvidia-utils-$explicit_suffix"
+      "nvidia-compute-utils-$explicit_suffix"
+      "${candidates[@]}"
+    )
   fi
 
   local pkg
+  local seen=" "
   for pkg in "${candidates[@]}"; do
+    [[ "$seen" == *" $pkg "* ]] && continue
+    seen+="$pkg "
     if apt-cache show "$pkg" >/dev/null 2>&1; then
       sudo apt-get install -y "$pkg"
       if command -v nvidia-smi >/dev/null 2>&1; then
@@ -187,6 +226,12 @@ install_nvidia_smi_utils() {
   if [[ -n "$fallback" ]]; then
     sudo apt-get install -y "$fallback"
   fi
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    return 0
+  fi
+  warn "Could not install nvidia-smi automatically. Inspect installed NVIDIA packages with:"
+  warn "  dpkg -l | grep -E 'nvidia|libnvidia'"
+  return 1
 }
 
 install_nvidia_driver() {
@@ -241,6 +286,13 @@ ensure_nvidia_driver() {
   fi
   if host_nvidia_smi_works; then
     return 0
+  fi
+  if is_ubuntu && dpkg-query -W 'nvidia-*' 'libnvidia-*' >/dev/null 2>&1; then
+    warn "NVIDIA packages are installed, but nvidia-smi is missing or failing. Installing user-space utilities."
+    install_nvidia_smi_utils || true
+    if host_nvidia_smi_works; then
+      return 0
+    fi
   fi
 
   warn "The host NVIDIA driver is not working. RFD3, ProteinMPNN, and ESMFold need a working driver for local GPU compute."
