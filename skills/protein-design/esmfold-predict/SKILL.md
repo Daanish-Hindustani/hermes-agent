@@ -15,9 +15,15 @@ metadata:
 Use `esmfold_predict` to locally fold amino-acid sequences and triage designed
 proteins before deeper validation.
 
+`esmfold_predict` assumes the ESMFold Docker image is already installed. Do not
+pull or build Docker images from this skill. If local compute is missing, report
+the setup requirement and continue planning.
+
 ## Workflow
 
-1. Fold designed sequences after ProteinMPNN.
+1. Fold designed sequences after ProteinMPNN, or a natural/user-provided
+   sequence when explicitly useful.
+   - Do not call this tool without `sequence` or `fasta_path`.
 2. Use `num_recycles=4` by default; increase when the structure is large or
    borderline and runtime is acceptable.
 3. Use `chunk_size` or `cpu_offload` for memory pressure.

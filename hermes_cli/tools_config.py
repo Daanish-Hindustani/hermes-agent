@@ -73,12 +73,13 @@ CONFIGURABLE_TOOLSETS = [
     ("discord",         "💬 Discord (read/participate)", "fetch messages, search members, create thread"),
     ("discord_admin",   "🛡️  Discord Server Admin",    "list channels/roles, pin, assign roles"),
     ("yuanbao",          "🤖 Yuanbao",                  "group info, member queries, DM"),
+    ("protein_design",   "🧬 Protein Design",           "PubMed, UniProt, RCSB, RFD3, ProteinMPNN, ESMFold"),
 ]
 
 # Toolsets that are OFF by default for new installs.
 # They're still in _HERMES_CORE_TOOLS (available at runtime if enabled),
 # but the setup checklist won't pre-select them for first-time users.
-_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "rl", "spotify", "discord", "discord_admin"}
+_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "rl", "spotify", "discord", "discord_admin", "protein_design"}
 
 # Platform-scoped toolsets: only appear in the `hermes tools` checklist for
 # these platforms, and only resolve/save for these platforms.  A toolset
@@ -451,6 +452,28 @@ TOOL_CATEGORIES = {
             },
         ],
     },
+    "protein_design": {
+        "name": "Protein Design",
+        "setup_title": "Set up local compute?",
+        "setup_note": "PubMed, UniProt, and RCSB work over HTTPS. RFD3, ProteinMPNN, and ESMFold need local Docker images.",
+        "icon": "🧬",
+        "providers": [
+            {
+                "name": "Local Docker compute",
+                "badge": "GPU · large downloads",
+                "tag": "Pull Foundry for RFD3/ProteinMPNN and build the local ESMFold image",
+                "env_vars": [],
+                "post_setup": "protein_design_local",
+            },
+            {
+                "name": "Search only / configure later",
+                "badge": "no downloads",
+                "tag": "Enable the toolset now, but skip local model image setup",
+                "env_vars": [],
+                "post_setup": "protein_design_search_only",
+            },
+        ],
+    },
 }
 
 # Simple env-var requirements for toolsets NOT in TOOL_CATEGORIES.
@@ -715,6 +738,28 @@ def _run_post_setup(post_setup_key: str):
             _print_info("    Run manually: hermes plugins enable observability/langfuse")
         _print_info("    Restart Hermes for tracing to take effect.")
         _print_info("    Verify: hermes plugins list")
+
+    elif post_setup_key == "protein_design_local":
+        import subprocess
+        script = PROJECT_ROOT / "scripts" / "setup_protein_design_local.sh"
+        if not script.exists():
+            _print_warning("    Protein-design setup script not found.")
+            _print_info("    Run manually: docker pull rosettacommons/foundry:latest")
+            _print_info("    Then build: docker build -t hermes-esmfold:latest -f plugins/protein-design/docker/esmfold.Dockerfile plugins/protein-design/docker")
+            return
+
+        _print_info("    Setting up local protein-design compute.")
+        _print_info("    This pulls/builds large Docker images and may take several minutes.")
+        result = subprocess.run([str(script)], cwd=str(PROJECT_ROOT), text=True)
+        if result.returncode == 0:
+            _print_success("    Protein-design local compute is ready")
+        else:
+            _print_warning("    Protein-design local compute setup did not complete.")
+            _print_info("    Re-run manually: scripts/setup_protein_design_local.sh")
+
+    elif post_setup_key == "protein_design_search_only":
+        _print_info("    Skipped local model setup.")
+        _print_info("    Later, run: scripts/setup_protein_design_local.sh")
 
 
 # ─── Platform / Toolset Helpers ───────────────────────────────────────────────
@@ -1626,6 +1671,18 @@ def _configure_provider(provider: dict, config: dict):
         web_cfg["use_gateway"] = bool(managed_feature)
         _print_success(f"  Web backend set to: {provider['web_backend']}")
 
+    if provider.get("post_setup") in {"protein_design_local", "protein_design_search_only"}:
+        protein_cfg = config.setdefault("protein_design", {})
+        if isinstance(protein_cfg, dict):
+            protein_cfg.setdefault(
+                "foundry_image",
+                os.environ.get("HERMES_PROTEIN_FOUNDRY_IMAGE", "rosettacommons/foundry:latest"),
+            )
+            protein_cfg.setdefault(
+                "esmfold_image",
+                os.environ.get("HERMES_PROTEIN_ESMFOLD_IMAGE", "hermes-esmfold:latest"),
+            )
+
     # For tools without a specific config key (e.g. image_gen), still
     # track use_gateway so the runtime knows the user's intent.
     if managed_feature and managed_feature not in ("web", "tts", "browser"):
@@ -1641,8 +1698,12 @@ def _configure_provider(provider: dict, config: dict):
                 break
 
     if not env_vars:
-        if provider.get("post_setup"):
-            _run_post_setup(provider["post_setup"])
+        post_setup = provider.get("post_setup")
+        if post_setup in {"protein_design_local", "protein_design_search_only"}:
+            _run_post_setup(post_setup)
+            return
+        if post_setup:
+            _run_post_setup(post_setup)
         _print_success(f"  {provider['name']} - no configuration needed!")
         if managed_feature:
             _print_info("  Requests for this tool will be billed to your Nous subscription.")

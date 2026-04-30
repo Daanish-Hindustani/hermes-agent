@@ -158,6 +158,34 @@ hermes tools
 
 If you run Hermes with explicit toolsets, include `protein_design`.
 
+## Local compute setup from Hermes
+
+During `hermes setup` or `hermes setup tools`, enable the `Protein Design`
+toolset. Hermes will ask whether to set up local Docker compute:
+
+- Choose `Local Docker compute` to pull Foundry for RFD3/ProteinMPNN and build
+  the local ESMFold image.
+- Choose `Search only / configure later` to use PubMed, UniProt, and RCSB now
+  without downloading model images.
+
+You can run the same local compute setup directly:
+
+```bash
+scripts/setup_protein_design_local.sh
+```
+
+Useful direct-run options:
+
+```bash
+scripts/setup_protein_design_local.sh --skip-esmfold-build
+scripts/setup_protein_design_local.sh --skip-foundry
+scripts/setup_protein_design_local.sh --skip-smoke-tests
+```
+
+This script does not install Hermes or Docker. It expects Docker to already be
+installed. For practical RFD3, ProteinMPNN, and ESMFold runs, Docker should have
+GPU access through NVIDIA Container Toolkit.
+
 ## Configure API-backed tools
 
 `uniprot_search` and `rcsb_search` do not need API keys.

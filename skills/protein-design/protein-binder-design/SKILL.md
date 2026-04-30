@@ -22,6 +22,25 @@ default posture is iterative: generate a small batch, score it, change one or
 two parameters based on failure mode, and repeat until the best computational
 candidate stops improving or the user's compute budget is reached.
 
+## Compute Guardrails
+
+Do not install, pull, or build local model images during a binder-design turn
+unless the user explicitly asks for setup/installation. In particular, do not
+use terminal commands such as `docker pull`, `docker build`, or `sudo docker`
+just because RFD3, ProteinMPNN, or ESMFold are needed.
+
+If local compute is not ready, report that and tell the user to run
+`hermes setup tools` and choose `Protein Design` -> `Local Docker compute`, or
+run `scripts/setup_protein_design_local.sh`. Then continue with literature,
+target, structure, contig, hotspot, and parameter planning.
+
+Only run heavyweight compute tools when all are true:
+
+- The target/sequence/structure inputs are known and validated.
+- The user asked to actually run designs or validation, not just plan.
+- Local Docker images are expected to already exist.
+- The run is a small debug job first, unless the user gave a larger budget.
+
 ## Campaign Workflow
 
 1. Clarify the design objective.
@@ -55,6 +74,8 @@ candidate stops improving or the user's compute budget is reached.
    - Include only target chains/ranges needed for binding context.
 
 6. Run `rfd3_design` for backbone generation.
+   - Skip this step and produce a design plan if no target structure/contig is
+     ready or local compute has not been set up.
    - Start with `num_designs=1-4` and lower `num_timesteps` for input/debug
      validation.
    - First real round: use `num_designs=8-32`, `num_timesteps=100-200`, and the
@@ -68,6 +89,7 @@ candidate stops improving or the user's compute budget is reached.
      `temperature=0.1`; increase to `0.2-0.3` when diversity is too low.
 
 8. Run `esmfold_predict` for sequence-level triage.
+   - Do not call ESMFold without a concrete amino-acid sequence or FASTA file.
    - Start with `num_recycles=4`.
    - Reject candidates with low-confidence cores, broken topology, or weak
      confidence in the interface/motif region.

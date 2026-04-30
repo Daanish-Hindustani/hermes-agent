@@ -369,8 +369,15 @@ def handle_esmfold_predict(args: dict[str, Any], **_: Any) -> str:
             fasta_path = resolve_workspace_path(fasta_arg, must_exist=True)
             mount_root = common_mount_root([fasta_path], fallback=root)
         else:
+            sequence = str(args.get("sequence") or "").strip()
+            if not sequence:
+                return json_result(
+                    success=False,
+                    error="Either sequence or fasta_path is required for esmfold_predict",
+                    guidance="Run ESMFold only after you have a designed/natural amino-acid sequence or a FASTA file.",
+                )
             mount_root = root
-            fasta_path = _write_fasta(str(args.get("sequence") or ""), output_name, mount_root)
+            fasta_path = _write_fasta(sequence, output_name, mount_root)
         out_dir = ensure_workspace(mount_root / output_name)
         docker_args = build_esmfold_docker_args(
             args,

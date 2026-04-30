@@ -128,6 +128,17 @@ def test_pubmed_query_variants_are_multi_query():
     assert any('"KRAS binder"' == variant for variant in variants)
 
 
+def test_rcsb_empty_response_returns_empty_results(monkeypatch):
+    _tools, _ = _load_plugin_modules()
+    clients = sys.modules["hermes_plugins.protein_design.clients"]
+
+    monkeypatch.setattr(clients, "_get_json", lambda *args, **kwargs: {})
+
+    result = clients.search_rcsb("ZFC3H1 no matching structure", max_results=5)
+
+    assert result["results"] == []
+
+
 def test_esmfold_command_includes_num_recycles():
     tools, _ = _load_plugin_modules()
     command = tools.build_esmfold_docker_args(
@@ -138,6 +149,14 @@ def test_esmfold_command_includes_num_recycles():
     assert command[:5] == ["esm-fold", "-i", "/work/in.fasta", "-o", "/work/out"]
     assert command[command.index("--num-recycles") + 1] == "8"
     assert command[command.index("--chunk-size") + 1] == "64"
+
+
+def test_esmfold_requires_sequence_or_fasta():
+    tools, _ = _load_plugin_modules()
+    result = json.loads(tools.handle_esmfold_predict({"output_name": "empty"}))
+
+    assert result["success"] is False
+    assert "sequence or fasta_path" in result["error"]
 
 
 def test_each_tool_has_associated_skill_with_valid_frontmatter():

@@ -15,6 +15,10 @@ metadata:
 Use `protein_mpnn_design` to design amino-acid sequences for fixed protein
 backbones. It is typically run after RFD3 generates candidate backbones.
 
+`protein_mpnn_design` assumes the Foundry Docker image is already installed. Do
+not pull or build Docker images from this skill. If local compute is missing,
+report the setup requirement and continue planning.
+
 ## Workflow
 
 1. Start from a valid PDB/CIF backbone.

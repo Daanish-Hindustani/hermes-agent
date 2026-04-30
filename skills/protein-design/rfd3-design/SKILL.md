@@ -15,6 +15,11 @@ metadata:
 Use `rfd3_design` for RFdiffusion3 backbone generation. RFD3 is powerful but
 contigs are easy to get wrong; inspect the target structure before designing.
 
+`rfd3_design` assumes the Foundry Docker image is already installed. Do not pull
+or build Docker images from this skill. If the image is missing, tell the user
+to run `hermes setup tools` and choose Protein Design local compute, or run
+`scripts/setup_protein_design_local.sh`.
+
 ## Tool Inputs
 
 `rfd3_design` accepts:

@@ -18,6 +18,7 @@ SKIP_HERMES_INSTALL=0
 SKIP_IMAGES=0
 SKIP_ESMFOLD_BUILD=0
 SKIP_DOCKER_SETUP=0
+SKIP_SMOKE_TESTS=0
 
 usage() {
   cat <<'EOF'
@@ -28,6 +29,7 @@ Options:
   --skip-docker-setup     Do not install/configure Docker or NVIDIA Container Toolkit
   --skip-images           Do not pull/build protein-design Docker images
   --skip-esmfold-build    Pull Foundry, but do not build the ESMFold image
+  --skip-smoke-tests      Do not run GPU/tool smoke tests after pull/build
   -h, --help              Show this help
 
 Environment overrides:
@@ -45,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --skip-docker-setup) SKIP_DOCKER_SETUP=1 ;;
     --skip-images) SKIP_IMAGES=1 ;;
     --skip-esmfold-build) SKIP_ESMFOLD_BUILD=1 ;;
+    --skip-smoke-tests) SKIP_SMOKE_TESTS=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -188,6 +191,11 @@ docker_cmd() {
 }
 
 verify_gpu_runtime() {
+  if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
+    log "Skipping GPU runtime smoke test"
+    return
+  fi
+
   log "Checking host GPU"
   if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi
@@ -205,23 +213,14 @@ install_images() {
     return
   fi
 
-  log "Pulling Foundry image: $FOUNDRY_IMAGE"
-  docker_cmd pull "$FOUNDRY_IMAGE"
-  docker_cmd run --rm --gpus all "$FOUNDRY_IMAGE" rfd3 --help >/tmp/hermes-rfd3-help.txt
-  docker_cmd run --rm --gpus all "$FOUNDRY_IMAGE" mpnn --help >/tmp/hermes-mpnn-help.txt || \
-    warn "Foundry mpnn --help failed. The image may still work depending on its entrypoint; inspect /tmp/hermes-mpnn-help.txt."
-
+  local args=()
   if [[ "$SKIP_ESMFOLD_BUILD" == "1" ]]; then
-    log "Skipping ESMFold image build"
-    return
+    args+=(--skip-esmfold-build)
   fi
-
-  log "Building ESMFold image: $ESMFOLD_IMAGE"
-  docker_cmd build \
-    -t "$ESMFOLD_IMAGE" \
-    -f plugins/protein-design/docker/esmfold.Dockerfile \
-    plugins/protein-design/docker
-  docker_cmd run --rm --gpus all "$ESMFOLD_IMAGE" esm-fold --help >/tmp/hermes-esmfold-help.txt
+  if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
+    args+=(--skip-smoke-tests)
+  fi
+  scripts/setup_protein_design_local.sh "${args[@]}"
 }
 
 print_next_steps() {

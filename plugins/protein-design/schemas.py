@@ -73,7 +73,7 @@ RCSB_SEARCH_SCHEMA = {
 
 RFD3_DESIGN_SCHEMA = {
     "name": "rfd3_design",
-    "description": "Run RFdiffusion3 through the local Foundry Docker image using simplified protein-design inputs.",
+    "description": "Run RFdiffusion3 through an already-installed local Foundry Docker image using simplified protein-design inputs. Does not pull, build, or install Docker images.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -101,7 +101,7 @@ RFD3_DESIGN_SCHEMA = {
 
 PROTEIN_MPNN_DESIGN_SCHEMA = {
     "name": "protein_mpnn_design",
-    "description": "Run ProteinMPNN/LigandMPNN/SolubleMPNN through the local Foundry Docker image.",
+    "description": "Run ProteinMPNN/LigandMPNN/SolubleMPNN through an already-installed local Foundry Docker image. Does not pull, build, or install Docker images.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -124,7 +124,7 @@ PROTEIN_MPNN_DESIGN_SCHEMA = {
 
 ESMFOLD_PREDICT_SCHEMA = {
     "name": "esmfold_predict",
-    "description": "Fold protein sequences locally with ESMFold Docker and return PDB paths/confidence metrics.",
+    "description": "Fold a provided protein sequence or FASTA locally with an already-installed ESMFold Docker image and return PDB paths/confidence metrics. Does not pull, build, or install Docker images.",
     "parameters": {
         "type": "object",
         "properties": {

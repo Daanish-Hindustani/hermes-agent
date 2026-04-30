@@ -24,6 +24,8 @@ def _get_json(url: str, params: dict[str, Any] | None = None, timeout: float = 3
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         response = client.get(url, params=params)
         response.raise_for_status()
+        if not response.content or not response.text.strip():
+            return {}
         return response.json()
 
 
