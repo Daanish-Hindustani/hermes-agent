@@ -63,6 +63,8 @@ scripts/setup_protein_design_lambda.sh
 The setup script:
 
 - Installs base Ubuntu packages needed by Hermes and Docker.
+- Installs the recommended Ubuntu NVIDIA compute driver when it is missing
+  and the user accepts the prompt.
 - Installs Docker if it is missing.
 - Installs and configures NVIDIA Container Toolkit for `docker run --gpus all`.
 - Runs `./setup-hermes.sh` to create the repo-local Hermes virtualenv.
@@ -79,6 +81,7 @@ scripts/setup_protein_design_lambda.sh --skip-esmfold-build
 scripts/setup_protein_design_lambda.sh --skip-images
 scripts/setup_protein_design_lambda.sh --skip-docker-setup
 scripts/setup_protein_design_lambda.sh --skip-hermes-install
+scripts/setup_protein_design_lambda.sh --install-nvidia-driver
 ```
 
 Use `--skip-esmfold-build` when you only want RFD3/ProteinMPNN first, because
@@ -88,6 +91,16 @@ you have already confirmed this succeeds:
 ```bash
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
+
+If the NVIDIA driver is missing, run the setup script with:
+
+```bash
+scripts/setup_protein_design_lambda.sh --install-nvidia-driver
+sudo reboot
+```
+
+After reboot, rerun the setup script so Docker GPU checks and model image smoke
+tests can complete.
 
 After the script finishes, open a fresh shell if it added your user to the
 Docker group, then start Hermes:

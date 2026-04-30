@@ -3,7 +3,8 @@
 #
 # Assumptions:
 # - "Lambda" means Lambda Cloud / Lambda Labs GPU VM, not AWS Lambda.
-# - The instance is Ubuntu 22.04 with Lambda Stack / NVIDIA drivers installed.
+# - The instance is Ubuntu 22.04. If NVIDIA drivers are missing, the script can
+#   install the recommended Ubuntu compute driver and ask for a reboot.
 # - Run this from the hermes-agent repository root after cloning it.
 
 set -euo pipefail
@@ -19,6 +20,8 @@ SKIP_IMAGES=0
 SKIP_ESMFOLD_BUILD=0
 SKIP_DOCKER_SETUP=0
 SKIP_SMOKE_TESTS=0
+INSTALL_NVIDIA_DRIVER="${HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER:-auto}"
+NVIDIA_DRIVER_PACKAGE="${HERMES_PROTEIN_NVIDIA_DRIVER_PACKAGE:-auto}"
 
 usage() {
   cat <<'EOF'
@@ -30,6 +33,10 @@ Options:
   --skip-images           Do not pull/build protein-design Docker images
   --skip-esmfold-build    Pull Foundry, but do not build the ESMFold image
   --skip-smoke-tests      Do not run GPU/tool smoke tests after pull/build
+  --install-nvidia-driver Install the recommended Ubuntu NVIDIA compute driver if missing
+  --no-install-nvidia-driver
+                           Do not prompt to install an NVIDIA driver
+  --driver-package PKG    Install a specific driver package instead of ubuntu-drivers auto-detect
   -h, --help              Show this help
 
 Environment overrides:
@@ -38,6 +45,8 @@ Environment overrides:
   HERMES_PROTEIN_ESMFOLD_IMAGE        Default: hermes-esmfold:latest
   HERMES_PROTEIN_WORKSPACE_ROOT       Default: $HERMES_HOME/protein-design
   HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS Default: 7200
+  HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER   auto|1|0, default: auto
+  HERMES_PROTEIN_NVIDIA_DRIVER_PACKAGE   Default: auto
 EOF
 }
 
@@ -48,6 +57,17 @@ while [[ $# -gt 0 ]]; do
     --skip-images) SKIP_IMAGES=1 ;;
     --skip-esmfold-build) SKIP_ESMFOLD_BUILD=1 ;;
     --skip-smoke-tests) SKIP_SMOKE_TESTS=1 ;;
+    --install-nvidia-driver) INSTALL_NVIDIA_DRIVER=1 ;;
+    --no-install-nvidia-driver) INSTALL_NVIDIA_DRIVER=0 ;;
+    --driver-package)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "--driver-package requires a package name" >&2
+        exit 2
+      fi
+      NVIDIA_DRIVER_PACKAGE="$1"
+      INSTALL_NVIDIA_DRIVER=1
+      ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -86,6 +106,7 @@ install_base_packages() {
     gnupg \
     git \
     jq \
+    pciutils \
     build-essential \
     python3-venv
 }
@@ -219,6 +240,14 @@ install_images() {
   fi
   if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
     args+=(--skip-smoke-tests)
+  fi
+  if [[ "$INSTALL_NVIDIA_DRIVER" == "1" ]]; then
+    args+=(--install-nvidia-driver)
+  elif [[ "$INSTALL_NVIDIA_DRIVER" == "0" ]]; then
+    args+=(--no-install-nvidia-driver)
+  fi
+  if [[ "$NVIDIA_DRIVER_PACKAGE" != "auto" ]]; then
+    args+=(--driver-package "$NVIDIA_DRIVER_PACKAGE")
   fi
   scripts/setup_protein_design_local.sh "${args[@]}"
 }
