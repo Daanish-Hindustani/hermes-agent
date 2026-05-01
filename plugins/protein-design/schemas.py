@@ -133,7 +133,10 @@ ESMFOLD_PREDICT_SCHEMA = {
             "output_name": {"type": "string"},
             "num_recycles": {"type": "integer", "default": 4, "minimum": 1},
             "chunk_size": {"type": "integer", "description": "Optional axial attention chunk size: 128, 64, or 32."},
-            "max_tokens_per_batch": {"type": "integer", "description": "Optional esm-fold batching limit."},
+            "max_tokens_per_batch": {
+                "type": "integer",
+                "description": "Optional batching target; the HuggingFace image currently processes FASTA entries sequentially.",
+            },
             "cpu_only": {"type": "boolean", "default": False},
             "cpu_offload": {"type": "boolean", "default": False},
         },

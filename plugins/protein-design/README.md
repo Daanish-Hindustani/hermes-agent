@@ -271,7 +271,10 @@ the expected Foundry commands and weights available.
 
 ## Build the ESMFold image
 
-ESMFold uses a dedicated image because its dependency stack is separate:
+ESMFold uses a dedicated image because its dependency stack is separate. The
+image uses the HuggingFace `facebook/esmfold_v1` implementation directly,
+matching the ProteinClaw/celltype-agent container pattern, instead of the
+fragile upstream `esm-fold` CLI/OpenFold build path.
 
 ```bash
 docker build -t hermes-esmfold:latest -f plugins/protein-design/docker/esmfold.Dockerfile plugins/protein-design/docker
@@ -280,7 +283,8 @@ docker build -t hermes-esmfold:latest -f plugins/protein-design/docker/esmfold.D
 Smoke test:
 
 ```bash
-docker run --rm --gpus all hermes-esmfold:latest esm-fold --help
+docker run --rm --entrypoint python3 hermes-esmfold:latest \
+  -c "import sys; sys.path.insert(0, '/opt'); import implementation; print('esmfold image ok')"
 ```
 
 CPU-only ESMFold is possible through the `cpu_only` tool argument, but it is
@@ -442,10 +446,10 @@ first, then restart Docker and retry the Docker GPU check.
 
 ### ESMFold image fails to build
 
-ESMFold depends on PyTorch, `fair-esm[esmfold]`, and OpenFold. This stack is
-fragile across CUDA/Python versions. Use the provided Dockerfile first. If it
-breaks on a newer GPU/CUDA host, update PyTorch CUDA wheels in the Dockerfile
-before changing Hermes code.
+ESMFold uses the NVIDIA PyTorch base image plus HuggingFace `transformers`.
+The setup script builds the image and pre-downloads `facebook/esmfold_v1`.
+If the build fails, check Docker Hub/NVIDIA container registry access and disk
+space first; the image and cached model are large.
 
 ### PubMed rate limits
 

@@ -139,16 +139,18 @@ def test_rcsb_empty_response_returns_empty_results(monkeypatch):
     assert result["results"] == []
 
 
-def test_esmfold_command_includes_num_recycles():
+def test_esmfold_payload_includes_num_recycles():
     tools, _ = _load_plugin_modules()
-    command = tools.build_esmfold_docker_args(
+    payload = tools.build_esmfold_input_payload(
         {"num_recycles": 8, "chunk_size": 64, "max_tokens_per_batch": 1024},
-        "/work/in.fasta",
-        "/work/out",
+        sequence=None,
+        fasta_container_path="/work/in.fasta",
+        output_container_dir="/work/out",
     )
-    assert command[:5] == ["esm-fold", "-i", "/work/in.fasta", "-o", "/work/out"]
-    assert command[command.index("--num-recycles") + 1] == "8"
-    assert command[command.index("--chunk-size") + 1] == "64"
+    assert payload["fasta_path"] == "/work/in.fasta"
+    assert payload["output_dir"] == "/work/out"
+    assert payload["num_recycles"] == 8
+    assert payload["chunk_size"] == 64
 
 
 def test_esmfold_requires_sequence_or_fasta():

@@ -87,11 +87,14 @@ def run_docker(
     mount_root: Path,
     timeout: int | None = None,
     gpus: bool = True,
+    env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     timeout = int(timeout or config_value("default_timeout_seconds", 3600))
     command = ["docker", "run", "--rm"]
     if gpus:
         command.extend(["--gpus", "all"])
+    for key, value in (env or {}).items():
+        command.extend(["-e", f"{key}={value}"])
     command.extend(["-v", f"{mount_root.resolve()}:/work", "-w", "/work", image])
     command.extend(args)
 

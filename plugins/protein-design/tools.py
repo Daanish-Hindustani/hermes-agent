@@ -342,22 +342,36 @@ def _write_fasta(sequence: str, output_name: str, root: Path) -> Path:
     return path
 
 
-def build_esmfold_docker_args(args: dict[str, Any], fasta_container_path: str, output_container_dir: str) -> list[str]:
-    command = [
-        "esm-fold",
-        "-i", fasta_container_path,
-        "-o", output_container_dir,
-        "--num-recycles", str(_clamp_int(args.get("num_recycles"), 4, 1, None)),
-    ]
+def build_esmfold_input_payload(
+    args: dict[str, Any],
+    *,
+    sequence: str | None,
+    fasta_container_path: str | None,
+    output_container_dir: str,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "sequence": sequence,
+        "fasta_path": fasta_container_path,
+        "output_dir": output_container_dir,
+        "sequence_name": str(args.get("output_name") or "sequence"),
+        "num_recycles": _clamp_int(args.get("num_recycles"), 4, 1, None),
+        "max_tokens_per_batch": _clamp_int(args.get("max_tokens_per_batch"), 1024, 1, None),
+        "cpu_only": bool(args.get("cpu_only")),
+        "cpu_offload": bool(args.get("cpu_offload")),
+    }
     if args.get("chunk_size") is not None:
-        command.extend(["--chunk-size", str(_clamp_int(args.get("chunk_size"), 128, 1, None))])
-    if args.get("max_tokens_per_batch") is not None:
-        command.extend(["--max-tokens-per-batch", str(_clamp_int(args.get("max_tokens_per_batch"), 0, 0, None))])
-    if args.get("cpu_only"):
-        command.append("--cpu-only")
-    if args.get("cpu_offload"):
-        command.append("--cpu-offload")
-    return command
+        payload["chunk_size"] = _clamp_int(args.get("chunk_size"), 128, 1, None)
+    return payload
+
+
+def build_esmfold_docker_args(
+    _args: dict[str, Any],
+    _input_container_path: str,
+    _output_container_path: str,
+) -> list[str]:
+    # The image entrypoint reads JSON from INPUT_FILE and writes OUTPUT_FILE.
+    # Keep this function for tests and future CLI compatibility.
+    return []
 
 
 def handle_esmfold_predict(args: dict[str, Any], **_: Any) -> str:
@@ -365,6 +379,7 @@ def handle_esmfold_predict(args: dict[str, Any], **_: Any) -> str:
         output_name = str(args.get("output_name") or "esmfold").strip()
         root = ensure_workspace()
         fasta_arg = str(args.get("fasta_path") or "")
+        sequence: str | None = None
         if fasta_arg:
             fasta_path = resolve_workspace_path(fasta_arg, must_exist=True)
             mount_root = common_mount_root([fasta_path], fallback=root)
@@ -379,18 +394,43 @@ def handle_esmfold_predict(args: dict[str, Any], **_: Any) -> str:
             mount_root = root
             fasta_path = _write_fasta(sequence, output_name, mount_root)
         out_dir = ensure_workspace(mount_root / output_name)
+        input_json = mount_root / f"{output_name}_esmfold_input.json"
+        output_json = out_dir / "esmfold_result.json"
+        payload = build_esmfold_input_payload(
+            args,
+            sequence=None if fasta_arg else sequence,
+            fasta_container_path=to_container_path(fasta_path, mount_root) if fasta_arg else None,
+            output_container_dir=to_container_path(out_dir, mount_root),
+        )
+        input_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         docker_args = build_esmfold_docker_args(
             args,
-            to_container_path(fasta_path, mount_root),
-            to_container_path(out_dir, mount_root),
+            to_container_path(input_json, mount_root),
+            to_container_path(output_json, mount_root),
         )
         run = run_docker(
             str(config_value("esmfold_image", DEFAULT_ESMFOLD_IMAGE)),
             docker_args,
             mount_root=mount_root,
             gpus=not bool(args.get("cpu_only")),
+            env={
+                "INPUT_FILE": to_container_path(input_json, mount_root),
+                "OUTPUT_FILE": to_container_path(output_json, mount_root),
+            },
         )
         pdb_files = [str(p) for p in out_dir.rglob("*.pdb")] if out_dir.exists() else []
-        return json_result(success=run["success"], output_dir=str(out_dir), pdb_files=pdb_files, docker=run)
+        result_payload: dict[str, Any] = {}
+        if output_json.exists():
+            try:
+                result_payload = json.loads(output_json.read_text(encoding="utf-8"))
+            except Exception:
+                result_payload = {"result_json": str(output_json)}
+        return json_result(
+            success=run["success"],
+            output_dir=str(out_dir),
+            pdb_files=pdb_files,
+            result=result_payload,
+            docker=run,
+        )
     except Exception as exc:
         return json_result(success=False, error=str(exc))

@@ -1,31 +1,34 @@
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+# ESMFold structure prediction from sequence.
+#
+# This follows the ProteinClaw/celltype-agent pattern: use the HuggingFace
+# ESMFold implementation directly instead of the brittle upstream `esm-fold`
+# shell entrypoint and its old OpenFold build.
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/opt/conda/bin:${PATH}"
-ENV MAX_JOBS=2
+FROM nvcr.io/nvidia/pytorch:25.04-py3
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    git \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
-RUN curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o /tmp/miniforge.sh \
-    && bash /tmp/miniforge.sh -b -p /opt/conda \
-    && rm /tmp/miniforge.sh \
-    && conda install -y --override-channels -c conda-forge python=3.9 pip \
-    && conda clean -afy
+RUN pip install --no-cache-dir \
+    transformers \
+    accelerate \
+    biopython \
+    numpy \
+    sentencepiece
 
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu118 \
-    && pip install --no-cache-dir "fair-esm[esmfold]" \
-    && pip install --no-cache-dir 'dllogger @ git+https://github.com/NVIDIA/dllogger.git' \
-    && git clone https://github.com/aqlaboratory/openfold.git /tmp/openfold \
-    && cd /tmp/openfold \
-    && git checkout 4b41059694619831a7db195b7e0988fc4ff3a307 \
-    && python -c "from pathlib import Path; p=Path('setup.py'); p.write_text(p.read_text().replace('-std=c++14', '-std=c++17'))" \
-    && pip install --no-cache-dir . \
-    && rm -rf /tmp/openfold
+COPY esmfold/tool_entrypoint.py /opt/tool_entrypoint.py
+COPY esmfold/implementation.py /opt/implementation.py
 
+RUN python3 - <<'PY'
+from transformers import AutoTokenizer, EsmForProteinFolding
+
+tokenizer = AutoTokenizer.from_pretrained("facebook/esmfold_v1")
+model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1")
+assert tokenizer is not None
+assert model is not None
+PY
+
+RUN mkdir -p /work
 WORKDIR /work
-CMD ["esm-fold", "--help"]
+
+ENTRYPOINT ["python3", "/opt/tool_entrypoint.py"]

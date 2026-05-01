@@ -421,8 +421,10 @@ setup_esmfold() {
     return
   fi
 
-  log "Checking ESMFold command"
-  docker_cmd run --rm --gpus all "$ESMFOLD_IMAGE" esm-fold --help >/tmp/hermes-esmfold-help.txt
+  log "Checking ESMFold image entrypoint"
+  docker_cmd run --rm --entrypoint python3 "$ESMFOLD_IMAGE" \
+    -c "import sys; sys.path.insert(0, '/opt'); import implementation; print('esmfold image ok')" \
+    >/tmp/hermes-esmfold-help.txt
 }
 
 require_docker
