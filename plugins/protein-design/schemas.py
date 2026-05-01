@@ -151,31 +151,32 @@ PROTEIN_MPNN_DESIGN_SCHEMA = {
 }
 
 
-ROSETTA_INTERFACE_ANALYZER_SCHEMA = {
-    "name": "rosetta_interface_analyzer",
-    "description": "Run Rosetta InterfaceAnalyzer on a designed complex to estimate interface quality metrics such as dG_separated. Requires an image with Rosetta InterfaceAnalyzer installed.",
+ALPHAFOLD2_MULTIMER_PREDICT_SCHEMA = {
+    "name": "alphafold2_multimer_predict",
+    "description": "Run a configurable AlphaFold2/ColabFold multimer container to predict binder-target complex structures for interface triage. Requires a compatible AF2/ColabFold image.",
     "parameters": {
         "type": "object",
         "properties": {
-            "structure_path": {"type": "string", "description": "Single input PDB path, or a directory containing PDB files."},
-            "structure_paths": {
+            "fasta_path": {"type": "string", "description": "Input FASTA path. Used instead of sequence fields when provided."},
+            "sequence": {"type": "string", "description": "Colon-separated multimer sequence, e.g. BINDER:TARGET."},
+            "binder_sequence": {"type": "string", "description": "Designed binder amino-acid sequence."},
+            "target_sequence": {"type": "string", "description": "Target amino-acid sequence."},
+            "sequences": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Optional explicit list of input PDB paths. Overrides structure_path when provided.",
-            },
-            "interface": {
-                "type": "string",
-                "description": "Rosetta interface definition such as A_B for binder chain A against target chain B.",
+                "description": "Ordered chain sequences. Used when fasta_path, sequence, and binder/target pair are not provided.",
             },
             "output_name": {"type": "string"},
-            "pack_separated": {"type": "boolean", "default": True},
-            "compute_packstat": {"type": "boolean", "default": False},
-            "executable": {
+            "model_type": {"type": "string", "default": "alphafold2_multimer_v3"},
+            "num_recycles": {"type": "integer", "default": 3, "minimum": 1},
+            "command": {
                 "type": "string",
-                "description": "Optional InterfaceAnalyzer executable name/path inside the image.",
+                "description": "Command inside the image. Defaults to colabfold_batch.",
             },
+            "image": {"type": "string", "description": "Optional Docker image override."},
+            "cpu_only": {"type": "boolean", "default": False},
         },
-        "required": ["interface", "output_name"],
+        "required": ["output_name"],
     },
 }
 

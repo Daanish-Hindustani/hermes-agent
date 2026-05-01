@@ -387,31 +387,6 @@ def _mpnn_structure_inputs(args: dict[str, Any]) -> list[Path]:
     return structures
 
 
-def _pdb_structure_inputs(args: dict[str, Any]) -> list[Path]:
-    explicit_paths = _as_list(args.get("structure_paths"))
-    if explicit_paths:
-        structures = [resolve_workspace_path(path, must_exist=True) for path in explicit_paths]
-    else:
-        structure_arg = str(args.get("structure_path") or "").strip()
-        if not structure_arg:
-            raise ValueError("structure_path or structure_paths is required")
-        structure = resolve_workspace_path(structure_arg, must_exist=True)
-        if not structure.is_dir():
-            structures = [structure]
-        else:
-            structures = []
-            for pattern in ("*.pdb", "*.ent", "*.pdb.gz", "*.ent.gz"):
-                structures.extend(sorted(structure.glob(pattern)))
-            if not structures:
-                raise ValueError(f"No PDB structure files found in directory: {structure}")
-
-    for item in structures:
-        suffixes = "".join(item.suffixes).lower()
-        if not suffixes.endswith((".pdb", ".ent", ".pdb.gz", ".ent.gz")):
-            raise ValueError(f"Rosetta InterfaceAnalyzer requires PDB input, got: {item}")
-    return structures
-
-
 def _safe_output_suffix(path: Path) -> str:
     name = path.name
     for suffix in (".pdb.gz", ".ent.gz", ".cif.gz", ".mmcif.gz", ".pdb", ".ent", ".cif", ".mmcif"):
@@ -419,85 +394,6 @@ def _safe_output_suffix(path: Path) -> str:
             name = name[: -len(suffix)]
             break
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "structure"
-
-
-def build_rosetta_interface_analyzer_script(
-    args: dict[str, Any],
-    structure_container_path: str,
-    score_container_path: str,
-) -> str:
-    executable = str(
-        args.get("executable")
-        or config_value("rosetta_interface_analyzer_executable", "InterfaceAnalyzer.linuxgccrelease")
-    )
-    interface = str(args.get("interface") or "").strip()
-    if not interface:
-        raise ValueError("interface is required, e.g. A_B")
-
-    candidates = [
-        executable,
-        "InterfaceAnalyzer.default.linuxgccrelease",
-        "InterfaceAnalyzer.linuxgccrelease",
-        "interface_analyzer.linuxgccrelease",
-        "rosetta_scripts.linuxgccrelease",
-    ]
-    deduped_candidates: list[str] = []
-    for candidate in candidates:
-        if candidate and candidate not in deduped_candidates:
-            deduped_candidates.append(candidate)
-
-    candidate_list = " ".join(_shell_quote(candidate) for candidate in deduped_candidates)
-    flags = [
-        "-s", structure_container_path,
-        "-interface", interface,
-        "-out:file:scorefile", score_container_path,
-        "-out:no_nstruct_label",
-    ]
-    if bool(args.get("pack_separated", True)):
-        flags.append("-pack_separated")
-    if bool(args.get("compute_packstat", False)):
-        flags.append("-compute_packstat")
-    quoted_flags = " ".join(_shell_quote(flag) for flag in flags)
-    return (
-        "set -euo pipefail; "
-        "EXE=''; "
-        f"for CAND in {candidate_list}; do "
-        'if command -v "$CAND" >/dev/null 2>&1; then EXE="$CAND"; break; fi; '
-        "done; "
-        'if [ -z "${EXE:-}" ]; then echo "InterfaceAnalyzer executable not found" >&2; exit 127; fi; '
-        f'"$EXE" {quoted_flags}'
-    )
-
-
-def _shell_quote(value: str) -> str:
-    return "'" + value.replace("'", "'\"'\"'") + "'"
-
-
-def parse_rosetta_scorefile(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    header: list[str] | None = None
-    rows: list[dict[str, Any]] = []
-    for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = raw_line.strip()
-        if not line.startswith("SCORE:"):
-            continue
-        parts = line.split()[1:]
-        if not parts:
-            continue
-        if parts[0] == "score" or "description" in parts:
-            header = parts
-            continue
-        if not header:
-            continue
-        row: dict[str, Any] = {}
-        for key, value in zip(header, parts):
-            try:
-                row[key] = float(value)
-            except ValueError:
-                row[key] = value
-        rows.append(row)
-    return rows
 
 
 def handle_protein_mpnn_design(args: dict[str, Any], **_: Any) -> str:
@@ -532,47 +428,6 @@ def handle_protein_mpnn_design(args: dict[str, Any], **_: Any) -> str:
         return json_result(success=False, error=str(exc))
 
 
-def handle_rosetta_interface_analyzer(args: dict[str, Any], **_: Any) -> str:
-    try:
-        structures = _pdb_structure_inputs(args)
-        mount_root = common_mount_root(structures)
-        output_name = str(args.get("output_name") or "interface_analysis")
-        out_root = ensure_workspace(mount_root / output_name)
-        runs: list[dict[str, Any]] = []
-        score_files: list[str] = []
-
-        for index, structure in enumerate(structures, start=1):
-            suffix = _safe_output_suffix(structure)
-            score_path = out_root / f"{index}_{suffix}.sc" if len(structures) > 1 else out_root / f"{output_name}.sc"
-            script = build_rosetta_interface_analyzer_script(
-                args,
-                to_container_path(structure, mount_root),
-                to_container_path(score_path, mount_root),
-            )
-            run = run_docker(
-                str(config_value("foundry_image", DEFAULT_FOUNDRY_IMAGE)),
-                ["bash", "-lc", script],
-                mount_root=mount_root,
-            )
-            scores = parse_rosetta_scorefile(score_path)
-            score_files.append(str(score_path))
-            runs.append({
-                "structure_path": str(structure),
-                "score_file": str(score_path),
-                "scores": scores,
-                "docker": run,
-            })
-
-        return json_result(
-            success=all(item["docker"]["success"] for item in runs),
-            output_dir=str(out_root),
-            score_files=score_files,
-            runs=runs,
-        )
-    except Exception as exc:
-        return json_result(success=False, error=str(exc))
-
-
 def _write_fasta(sequence: str, output_name: str, root: Path) -> Path:
     cleaned = re.sub(r"\s+", "", sequence).upper()
     if not cleaned or not AA_RE.match(cleaned):
@@ -580,6 +435,81 @@ def _write_fasta(sequence: str, output_name: str, root: Path) -> Path:
     path = root / f"{output_name}.fasta"
     path.write_text(f">{output_name}\n{cleaned}\n", encoding="utf-8")
     return path
+
+
+def _write_multimer_fasta(args: dict[str, Any], output_name: str, root: Path) -> Path:
+    sequence = str(args.get("sequence") or "").strip()
+    if not sequence:
+        binder = str(args.get("binder_sequence") or "").strip()
+        target = str(args.get("target_sequence") or "").strip()
+        if binder and target:
+            sequence = f"{binder}:{target}"
+        else:
+            sequences = _as_list(args.get("sequences"))
+            if sequences:
+                sequence = ":".join(sequences)
+    if not sequence:
+        raise ValueError("Provide fasta_path, sequence, binder_sequence + target_sequence, or sequences.")
+    return _write_fasta(sequence, output_name, root)
+
+
+def build_alphafold2_multimer_docker_args(
+    args: dict[str, Any],
+    fasta_container_path: str,
+    output_container_dir: str,
+) -> list[str]:
+    command = str(args.get("command") or config_value("alphafold2_command", "colabfold_batch"))
+    model_type = str(args.get("model_type") or "alphafold2_multimer_v3")
+    return [
+        command,
+        "--model-type", model_type,
+        "--num-recycle", str(_clamp_int(args.get("num_recycles"), 3, 1, None)),
+        fasta_container_path,
+        output_container_dir,
+    ]
+
+
+def handle_alphafold2_multimer_predict(args: dict[str, Any], **_: Any) -> str:
+    try:
+        output_name = str(args.get("output_name") or "af2_multimer").strip()
+        root = ensure_workspace()
+        fasta_arg = str(args.get("fasta_path") or "").strip()
+        if fasta_arg:
+            fasta_path = resolve_workspace_path(fasta_arg, must_exist=True)
+            mount_root = common_mount_root([fasta_path], fallback=root)
+        else:
+            mount_root = root
+            fasta_path = _write_multimer_fasta(args, output_name, mount_root)
+        out_dir = ensure_workspace(mount_root / output_name)
+        docker_args = build_alphafold2_multimer_docker_args(
+            args,
+            to_container_path(fasta_path, mount_root),
+            to_container_path(out_dir, mount_root),
+        )
+        image = str(args.get("image") or config_value("alphafold2_image", "ghcr.io/sokrypton/colabfold:latest"))
+        run = run_docker(
+            image,
+            docker_args,
+            mount_root=mount_root,
+            gpus=not bool(args.get("cpu_only")),
+            timeout=_clamp_int(args.get("timeout_seconds"), int(config_value("default_timeout_seconds", 7200)), 60, None),
+        )
+        output_files = [str(p) for p in out_dir.rglob("*") if p.is_file()] if out_dir.exists() else []
+        structure_files = [
+            path for path in output_files
+            if path.lower().endswith((".pdb", ".cif", ".mmcif", ".pdb.gz", ".cif.gz", ".mmcif.gz"))
+        ]
+        json_files = [path for path in output_files if path.lower().endswith(".json")]
+        return json_result(
+            success=run["success"],
+            output_dir=str(out_dir),
+            structure_files=structure_files,
+            json_files=json_files,
+            output_files=output_files,
+            docker=run,
+        )
+    except Exception as exc:
+        return json_result(success=False, error=str(exc))
 
 
 def build_esmfold_input_payload(

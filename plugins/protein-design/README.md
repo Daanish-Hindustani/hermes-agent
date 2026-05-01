@@ -14,8 +14,8 @@ validation.
 | `inspect_structure` | Local PDB/CIF inspection for chains, gaps, HETATM records, and resolution | Local Python |
 | `rfd3_design` | RFdiffusion3 backbone/design generation | Docker + Foundry |
 | `protein_mpnn_design` | ProteinMPNN/LigandMPNN sequence design | Docker + Foundry |
-| `rosetta_interface_analyzer` | Rosetta InterfaceAnalyzer scoring for binder-target complexes | Docker + Foundry/Rosetta image |
 | `esmfold_predict` | ESMFold structure prediction and foldability triage | Docker + local ESMFold image |
+| `alphafold2_multimer_predict` | AlphaFold2/ColabFold multimer complex prediction | Docker + configured AF2/ColabFold image |
 
 Each tool has a matching skill under `skills/protein-design/`. The skills teach
 the agent when to use the tool and how to interpret results. The RFD3 skill is
@@ -311,6 +311,8 @@ Relevant config keys in `~/.hermes/config.yaml`:
 protein_design:
   foundry_image: rosettacommons/foundry:latest
   esmfold_image: hermes-esmfold:latest
+  alphafold2_image: ghcr.io/sokrypton/colabfold:latest
+  alphafold2_command: colabfold_batch
   workspace_root: ~/.hermes/protein-design
   default_timeout_seconds: 3600
 ```
@@ -320,12 +322,19 @@ Environment variable overrides are also supported:
 ```bash
 export HERMES_PROTEIN_FOUNDRY_IMAGE=rosettacommons/foundry:latest
 export HERMES_PROTEIN_ESMFOLD_IMAGE=hermes-esmfold:latest
+export HERMES_PROTEIN_ALPHAFOLD2_IMAGE=ghcr.io/sokrypton/colabfold:latest
+export HERMES_PROTEIN_ALPHAFOLD2_COMMAND=colabfold_batch
 export HERMES_PROTEIN_WORKSPACE_ROOT="$HOME/.hermes/protein-design"
 export HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS=3600
 ```
 
 `workspace_root` is where generated FASTA/spec/output files go when the tool
 does not naturally run inside the current project directory.
+
+AlphaFold2/ColabFold images are not pulled by the local setup script because
+database and image choices vary a lot by host. Configure `alphafold2_image` and
+`alphafold2_command` for your AF2/ColabFold runtime before calling
+`alphafold2_multimer_predict`.
 
 ## Binder campaign workflow
 
@@ -361,15 +370,16 @@ single pass that declares a winner too early.
 6. Fold validation:
    - Use `esmfold_predict` with `num_recycles=4` initially, then increase for
      borderline candidates.
-7. Interface scoring:
-   - Use `rosetta_interface_analyzer` on promising binder-target complex PDBs.
-   - Inspect chain IDs first because RFD3 can remap binder/target chains.
-   - More negative `dG_separated` is generally better, but Rosetta scores are
-     computational triage, not measured affinity.
+7. Complex prediction:
+   - Use `alphafold2_multimer_predict` on promising binder-target sequence
+     pairs when an AlphaFold2/ColabFold multimer image is configured.
+   - Start with a small candidate set because AF2/Multimer is expensive.
+   - Treat AF2 complex predictions as computational triage, not measured
+     affinity.
 8. Rank and iterate:
    - Keep a candidate table with contig, hotspots, `guide_scale`,
-     `num_timesteps`, MPNN temperature, fold confidence, interface scores, and
-     decision.
+     `num_timesteps`, MPNN temperature, fold confidence, complex prediction
+     status, and decision.
    - Change one or two variables per round instead of rerunning identical jobs.
    - Keep top candidates from distinct settings so the agent preserves diversity.
    - Report the winner as the best computational candidate, not a validated
@@ -386,14 +396,14 @@ Useful parameter moves:
 - Repeated failures: stop and explain the blocker rather than spending compute
   blindly.
 
-ESMFold is foldability triage, not binding-affinity proof. Interface scoring,
-relaxation, docking, MD, or wet-lab validation are still needed before claiming
-a binder works.
+ESMFold is foldability triage, not binding-affinity proof. AF2/Multimer complex
+prediction is stronger interface triage, but docking, MD, orthogonal scoring,
+or wet-lab validation are still needed before claiming a binder works.
 
-Rosetta InterfaceAnalyzer can score existing binder-target complexes when the
-configured Foundry/Rosetta image includes an InterfaceAnalyzer executable. If
-the executable name differs, pass the tool's `executable` argument or configure
-`protein_design.rosetta_interface_analyzer_executable`.
+`alphafold2_multimer_predict` expects a compatible external Docker image. The
+default command shape is `colabfold_batch`; configure
+`protein_design.alphafold2_image` and `protein_design.alphafold2_command` for
+your local AF2/ColabFold setup.
 
 ## RFD3 contig setup
 

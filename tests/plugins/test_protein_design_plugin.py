@@ -76,8 +76,8 @@ def test_plugin_registers_all_tools():
         "inspect_structure",
         "rfd3_design",
         "protein_mpnn_design",
-        "rosetta_interface_analyzer",
         "esmfold_predict",
+        "alphafold2_multimer_predict",
     }
 
 
@@ -231,29 +231,34 @@ def test_mpnn_schema_does_not_advertise_missing_soluble_model():
     assert enum == ["protein_mpnn", "ligand_mpnn"]
 
 
-def test_rosetta_interface_analyzer_script_and_score_parser(tmp_path):
+def test_alphafold2_multimer_command_uses_colabfold_batch_defaults():
     tools, _ = _load_plugin_modules()
-    script = tools.build_rosetta_interface_analyzer_script(
-        {"interface": "A_B", "pack_separated": True, "compute_packstat": True},
-        "/work/complex.pdb",
-        "/work/interface.sc",
+    command = tools.build_alphafold2_multimer_docker_args(
+        {"num_recycles": 6},
+        "/work/input.fasta",
+        "/work/af2_out",
     )
 
-    assert "InterfaceAnalyzer.linuxgccrelease" in script
-    assert "-interface' 'A_B" in script
-    assert "-pack_separated" in script
-    assert "-compute_packstat" in script
+    assert command == [
+        "colabfold_batch",
+        "--model-type", "alphafold2_multimer_v3",
+        "--num-recycle", "6",
+        "/work/input.fasta",
+        "/work/af2_out",
+    ]
 
-    scorefile = tmp_path / "score.sc"
-    scorefile.write_text(
-        "SCORE: score dG_separated dSASA_int description\n"
-        "SCORE: -123.4 -15.6 1200.0 complex_0001\n",
-        encoding="utf-8",
+
+def test_alphafold2_multimer_writes_binder_target_fasta(tmp_path, monkeypatch):
+    tools, _ = _load_plugin_modules()
+    monkeypatch.setattr(tools, "ensure_workspace", lambda path=None: tmp_path if path is None else path)
+
+    fasta = tools._write_multimer_fasta(
+        {"binder_sequence": "ACD", "target_sequence": "EFG"},
+        "complex",
+        tmp_path,
     )
 
-    scores = tools.parse_rosetta_scorefile(scorefile)
-
-    assert scores == [{"score": -123.4, "dG_separated": -15.6, "dSASA_int": 1200.0, "description": "complex_0001"}]
+    assert fasta.read_text(encoding="utf-8") == ">complex\nACD:EFG\n"
 
 
 def test_rcsb_chain_summary_reports_ranges_and_gaps(tmp_path):
@@ -321,8 +326,8 @@ def test_each_tool_has_associated_skill_with_valid_frontmatter():
         "inspect-structure",
         "rfd3-design",
         "protein-mpnn-design",
-        "rosetta-interface-analyzer",
         "esmfold-predict",
+        "alphafold2-multimer-predict",
     }
     found = {path.parent.name for path in SKILL_DIR.glob("*/SKILL.md")}
     assert expected <= found

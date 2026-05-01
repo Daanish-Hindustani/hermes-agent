@@ -43,12 +43,9 @@ to run `hermes setup tools` and choose Protein Design local compute, or run
    - `partial_diffusion`: start from an input structure and perturb/redesign selected regions.
 
 2. Inspect the target structure before building a contig.
-   - Prefer `rcsb_search` to identify chains, residue numbering, missing
-     residues, ligands, and target chain IDs.
+   -Use `rcsb_search` or local file parsing to identify chains, residue
+     numbering, missing residues, ligands, and target chain IDs.
    - Use `inspect_structure` for local target files and generated RFD3 outputs.
-   - Do not install Python packages or use ad hoc shell parsing just to inspect
-     an RCSB structure. If `rcsb_search` is unavailable, tell the user the
-     `protein_design` toolset is not active and ask them to run `hermes tools`.
    - Confirm residue identifiers match the actual file, not paper numbering.
    - Watch for HETATM or modified residues such as chromophores and
      post-translational modifications. They may appear as numbering gaps in
