@@ -36,6 +36,12 @@ the setup requirement and continue planning.
 ## Interpretation
 
 - pLDDT is stored in the PDB B-factor field.
+- Mean pLDDT `>80`: high confidence; usually worth finalist consideration.
+- Mean pLDDT `65-80`: moderate confidence; keep as candidates if topology and
+  design context look plausible.
+- Mean pLDDT `50-65`: borderline; usually needs redesign or parameter tuning.
+- Mean pLDDT `<50`: likely disordered, misfolded, or not worth pursuing without
+  a specific reason.
 - High pLDDT does not prove binding, catalysis, expression, or stability.
 - Low confidence at flexible termini may be acceptable; low confidence in the
   designed core, active site, or binding interface is a serious warning.

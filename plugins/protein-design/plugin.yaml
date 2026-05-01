@@ -7,6 +7,7 @@ provides_tools:
   - pubmed_search
   - uniprot_search
   - rcsb_search
+  - inspect_structure
   - rfd3_design
   - protein_mpnn_design
   - esmfold_predict

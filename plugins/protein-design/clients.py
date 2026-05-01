@@ -18,6 +18,7 @@ UNIPROT_SEARCH_URL = "https://rest.uniprot.org/uniprotkb/search"
 RCSB_SEARCH_URL = "https://search.rcsb.org/rcsbsearch/v2/query"
 RCSB_DATA_ENTRY_URL = "https://data.rcsb.org/rest/v1/core/entry/{pdb_id}"
 RCSB_CIF_URL = "https://files.rcsb.org/download/{pdb_id}.cif"
+RCSB_PDB_URL = "https://files.rcsb.org/download/{pdb_id}.pdb"
 
 
 def _get_json(url: str, params: dict[str, Any] | None = None, timeout: float = 30.0) -> dict[str, Any]:
@@ -240,6 +241,7 @@ def search_rcsb(
     return_type: str = "entry",
     download: bool = False,
     output_dir: str = "",
+    download_format: str = "cif",
 ) -> dict[str, Any]:
     payload = build_rcsb_query(query, search_type=search_type, return_type=return_type, max_results=max_results)
     data = _get_json(RCSB_SEARCH_URL, params={"json": json.dumps(payload)})
@@ -256,9 +258,15 @@ def search_rcsb(
         if download:
             target_dir = Path(output_dir or "protein_design_rcsb").expanduser().resolve()
             target_dir.mkdir(parents=True, exist_ok=True)
-            cif_path = target_dir / f"{pdb_id}.cif"
-            cif_path.write_text(_get_text(RCSB_CIF_URL.format(pdb_id=pdb_id)), encoding="utf-8")
-            entry["local_path"] = str(cif_path)
+            fmt = download_format.lower().strip()
+            if fmt not in {"cif", "pdb"}:
+                fmt = "cif"
+            url = RCSB_PDB_URL if fmt == "pdb" else RCSB_CIF_URL
+            structure_path = target_dir / f"{pdb_id}.{fmt}"
+            structure_path.write_text(_get_text(url.format(pdb_id=pdb_id)), encoding="utf-8")
+            entry["local_path"] = str(structure_path)
+            entry["download_format"] = fmt
+            entry["chains"] = summarize_structure_chains(structure_path)
         entries.append(entry)
     return {"query": query, "search_type": search_type, "results": entries}
 
@@ -326,15 +334,12 @@ def normalize_rcsb_entry(meta: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-_PDB_ATOM_RE = re.compile(r"^(ATOM  |HETATM).{15}(.).{4}([A-Za-z0-9 ])(.{4})")
-
-
 def parse_pdb_residues(path: Path) -> dict[str, set[int]]:
     """Parse chain/residue IDs from legacy PDB ATOM/HETATM records."""
     residues: dict[str, set[int]] = {}
     with path.open(encoding="utf-8", errors="replace") as fh:
         for line in fh:
-            if not line.startswith(("ATOM  ", "HETATM")):
+            if not line.startswith("ATOM  "):
                 continue
             chain = (line[21].strip() or "_")
             try:
@@ -343,3 +348,201 @@ def parse_pdb_residues(path: Path) -> dict[str, set[int]]:
                 continue
             residues.setdefault(chain, set()).add(resi)
     return residues
+
+
+def _add_hetatm_record(records: dict[str, dict[str, Any]], comp_id: str, chain: str, resi: int) -> None:
+    key = f"{comp_id}:{chain}:{resi}"
+    record = records.setdefault(key, {"comp_id": comp_id, "chain": chain, "residue_number": resi, "atom_count": 0})
+    record["atom_count"] += 1
+
+
+def parse_pdb_hetatm_records(path: Path) -> list[dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            if not line.startswith("HETATM"):
+                continue
+            comp_id = line[17:20].strip() or "UNK"
+            chain = line[21].strip() or "_"
+            try:
+                resi = int(line[22:26].strip())
+            except ValueError:
+                continue
+            _add_hetatm_record(records, comp_id, chain, resi)
+    return sorted(records.values(), key=lambda item: (item["chain"], item["residue_number"], item["comp_id"]))
+
+
+def parse_pdb_resolution(path: Path) -> float | None:
+    pattern = re.compile(r"RESOLUTION\.\s+([0-9.]+)\s+ANGSTROMS", re.IGNORECASE)
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            if not line.startswith("REMARK   2"):
+                continue
+            match = pattern.search(line)
+            if match:
+                return float(match.group(1))
+    return None
+
+
+def parse_mmcif_residues(path: Path) -> dict[str, set[int]]:
+    """Parse chain/residue IDs from mmCIF _atom_site loops.
+
+    This intentionally handles only the columns needed for design setup. It
+    uses auth IDs when available because those normally match residue labels
+    users see in structure viewers and PDB-derived design specs.
+    """
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    residues: dict[str, set[int]] = {}
+    idx = 0
+    while idx < len(lines):
+        if lines[idx].strip() != "loop_":
+            idx += 1
+            continue
+        idx += 1
+        fields: list[str] = []
+        while idx < len(lines) and lines[idx].strip().startswith("_atom_site."):
+            fields.append(lines[idx].strip())
+            idx += 1
+        if not fields:
+            continue
+        if "_atom_site.group_PDB" not in fields:
+            continue
+        chain_field = "_atom_site.auth_asym_id" if "_atom_site.auth_asym_id" in fields else "_atom_site.label_asym_id"
+        seq_field = "_atom_site.auth_seq_id" if "_atom_site.auth_seq_id" in fields else "_atom_site.label_seq_id"
+        try:
+            group_i = fields.index("_atom_site.group_PDB")
+            chain_i = fields.index(chain_field)
+            seq_i = fields.index(seq_field)
+        except ValueError:
+            continue
+        while idx < len(lines):
+            raw = lines[idx].strip()
+            if not raw or raw == "#" or raw == "loop_" or raw.startswith("_"):
+                break
+            parts = raw.split()
+            if len(parts) > max(group_i, chain_i, seq_i) and parts[group_i] == "ATOM":
+                chain = parts[chain_i].strip("'\"") or "_"
+                try:
+                    resi = int(float(parts[seq_i].strip("'\"")))
+                except ValueError:
+                    idx += 1
+                    continue
+                residues.setdefault(chain, set()).add(resi)
+            idx += 1
+    return residues
+
+
+def _iter_mmcif_atom_rows(path: Path):
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    idx = 0
+    while idx < len(lines):
+        if lines[idx].strip() != "loop_":
+            idx += 1
+            continue
+        idx += 1
+        fields: list[str] = []
+        while idx < len(lines) and lines[idx].strip().startswith("_atom_site."):
+            fields.append(lines[idx].strip())
+            idx += 1
+        if not fields or "_atom_site.group_PDB" not in fields:
+            continue
+        while idx < len(lines):
+            raw = lines[idx].strip()
+            if not raw or raw == "#" or raw == "loop_" or raw.startswith("_"):
+                break
+            parts = raw.split()
+            if len(parts) >= len(fields):
+                yield fields, parts
+            idx += 1
+
+
+def parse_mmcif_hetatm_records(path: Path) -> list[dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    for fields, parts in _iter_mmcif_atom_rows(path):
+        try:
+            group_i = fields.index("_atom_site.group_PDB")
+            comp_i = fields.index("_atom_site.auth_comp_id" if "_atom_site.auth_comp_id" in fields else "_atom_site.label_comp_id")
+            chain_i = fields.index("_atom_site.auth_asym_id" if "_atom_site.auth_asym_id" in fields else "_atom_site.label_asym_id")
+            seq_i = fields.index("_atom_site.auth_seq_id" if "_atom_site.auth_seq_id" in fields else "_atom_site.label_seq_id")
+        except ValueError:
+            continue
+        if parts[group_i] != "HETATM":
+            continue
+        try:
+            resi = int(float(parts[seq_i].strip("'\"")))
+        except ValueError:
+            continue
+        _add_hetatm_record(records, parts[comp_i].strip("'\"") or "UNK", parts[chain_i].strip("'\"") or "_", resi)
+    return sorted(records.values(), key=lambda item: (item["chain"], item["residue_number"], item["comp_id"]))
+
+
+def parse_mmcif_resolution(path: Path) -> float | None:
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    for idx, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("_refine.ls_d_res_high"):
+            parts = stripped.split()
+            value = parts[1] if len(parts) > 1 else (lines[idx + 1].strip() if idx + 1 < len(lines) else "")
+            try:
+                return float(value.strip("'\""))
+            except ValueError:
+                return None
+    return None
+
+
+def summarize_residues(residues: dict[str, set[int]]) -> dict[str, dict[str, Any]]:
+    summary: dict[str, dict[str, Any]] = {}
+    for chain, values in sorted(residues.items()):
+        ordered = sorted(values)
+        if not ordered:
+            continue
+        gaps = [resi for resi in range(ordered[0], ordered[-1] + 1) if resi not in values]
+        ranges: list[str] = []
+        start = prev = ordered[0]
+        for resi in ordered[1:]:
+            if resi == prev + 1:
+                prev = resi
+                continue
+            ranges.append(f"{start}-{prev}" if start != prev else str(start))
+            start = prev = resi
+        ranges.append(f"{start}-{prev}" if start != prev else str(start))
+        summary[chain] = {
+            "count": len(ordered),
+            "range": f"{ordered[0]}-{ordered[-1]}",
+            "continuous_ranges": ranges,
+            "gaps": gaps,
+        }
+    return summary
+
+
+def summarize_structure_chains(path: Path) -> dict[str, dict[str, Any]]:
+    suffixes = "".join(path.suffixes).lower()
+    if suffixes.endswith(".pdb") or suffixes.endswith(".ent"):
+        return summarize_residues(parse_pdb_residues(path))
+    if suffixes.endswith(".cif") or suffixes.endswith(".mmcif"):
+        return summarize_residues(parse_mmcif_residues(path))
+    return {}
+
+
+def inspect_structure_file(path: Path) -> dict[str, Any]:
+    suffixes = "".join(path.suffixes).lower()
+    if suffixes.endswith(".pdb") or suffixes.endswith(".ent"):
+        fmt = "pdb"
+        chains = summarize_residues(parse_pdb_residues(path))
+        hetatm_records = parse_pdb_hetatm_records(path)
+        resolution = parse_pdb_resolution(path)
+    elif suffixes.endswith(".cif") or suffixes.endswith(".mmcif"):
+        fmt = "cif"
+        chains = summarize_residues(parse_mmcif_residues(path))
+        hetatm_records = parse_mmcif_hetatm_records(path)
+        resolution = parse_mmcif_resolution(path)
+    else:
+        raise ValueError(f"Unsupported structure format: {path}")
+    return {
+        "path": str(path),
+        "format": fmt,
+        "resolution": resolution,
+        "chains": chains,
+        "hetatm_records": hetatm_records,
+        "hetatm_comp_ids": sorted({record["comp_id"] for record in hetatm_records}),
+    }

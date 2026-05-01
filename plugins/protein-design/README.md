@@ -10,7 +10,8 @@ validation.
 |---|---|---|
 | `pubmed_search` | PubMed literature search with automatic query variation | HTTPS API |
 | `uniprot_search` | UniProtKB target sequence and annotation lookup | HTTPS API |
-| `rcsb_search` | RCSB PDB structure search and optional CIF download | HTTPS API |
+| `rcsb_search` | RCSB PDB structure search, optional PDB/CIF download, chain/range metadata | HTTPS API |
+| `inspect_structure` | Local PDB/CIF inspection for chains, gaps, HETATM records, and resolution | Local Python |
 | `rfd3_design` | RFdiffusion3 backbone/design generation | Docker + Foundry |
 | `protein_mpnn_design` | ProteinMPNN/LigandMPNN sequence design | Docker + Foundry |
 | `esmfold_predict` | ESMFold structure prediction and foldability triage | Docker + local ESMFold image |
@@ -338,6 +339,12 @@ single pass that declares a winner too early.
    - Use `uniprot_search` for canonical sequence, domains, features, and PDB refs.
 3. Target structure:
    - Use `rcsb_search` to find/download a structure and identify chains/ligands.
+   - Set `download_format` to `pdb` when strict PDB columns are useful, or
+     `cif` when preserving mmCIF metadata is preferable.
+   - Use returned `chains` metadata to find residue ranges, continuous ranges,
+     and gaps before writing contigs.
+   - Use `inspect_structure` on local/generated files before contig building or
+     ProteinMPNN chain selection.
 4. Backbone generation:
    - Use `rfd3_design`.
    - For binders, derive contigs from the actual target structure, e.g.
@@ -346,6 +353,7 @@ single pass that declares a winner too early.
    - Start with a tiny debug run, then generate 8-32 candidates per real round.
 5. Sequence design:
    - Use `protein_mpnn_design` on generated RFD3 structures.
+   - Pass a directory or `structure_paths` list to process multiple backbones.
    - Sweep sequence temperature around the most promising backbones.
 6. Fold validation:
    - Use `esmfold_predict` with `num_recycles=4` initially, then increase for

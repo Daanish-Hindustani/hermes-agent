@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [protein-design, rcsb, pdb, structure]
-    related_skills: [uniprot-search, rfd3-design]
+    related_skills: [uniprot-search, inspect-structure, rfd3-design]
 ---
 
 # RCSB Search
@@ -22,8 +22,14 @@ chain IDs, ligand context, structure download, or a target file for RFD3/MPNN.
    bound ligands/cofactors when those matter for the design goal.
 3. Check experimental method and resolution before trusting a structure.
 4. Download structures when they will feed RFD3, ProteinMPNN, or local parsing.
-5. Extract the chain IDs and residue ranges from the actual downloaded file,
-   not from paper prose.
+   - Use `download_format="pdb"` when a downstream step needs strict PDB
+     columns.
+   - Use `download_format="cif"` when preserving mmCIF metadata matters.
+5. Use the returned `chains` metadata to check chain IDs, residue ranges,
+   continuous ranges, and gaps. Confirm against the actual downloaded file when
+   the design depends on exact residue numbering.
+6. Use `inspect_structure` for local/generated structures or when you need
+   HETATM records and resolution alongside chain ranges.
 
 ## Design Notes
 
@@ -32,3 +38,5 @@ chain IDs, ligand context, structure download, or a target file for RFD3/MPNN.
   target/interface context that preserves the biology.
 - For ligand-aware design, keep the ligand-containing structure and record the
   ligand three-letter code.
+- Downloaded asymmetric units may contain multiple copies of the same protein.
+  Pick the intended monomer/chain before building contigs or hotspots.

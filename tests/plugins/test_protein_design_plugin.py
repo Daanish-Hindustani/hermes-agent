@@ -36,6 +36,35 @@ def _write_pdb(path: Path):
     path.write_text("".join(lines), encoding="utf-8")
 
 
+def _write_cif(path: Path):
+    path.write_text(
+        """data_test
+_refine.ls_d_res_high 1.8
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+ATOM 1 C CA ALA X 1 0.0 0.0 0.0 2 ALA A
+ATOM 2 C CA ALA X 2 0.0 0.0 0.0 3 ALA A
+ATOM 3 C CA ALA X 4 0.0 0.0 0.0 5 ALA A
+ATOM 4 C CA ALA Y 1 0.0 0.0 0.0 10 ALA B
+HETATM 5 C C1 CRO X 3 0.0 0.0 0.0 4 CRO A
+#
+""",
+        encoding="utf-8",
+    )
+
+
 def test_plugin_registers_all_tools():
     _, mgr = _load_plugin_modules()
     loaded = mgr._plugins["protein-design"]
@@ -44,6 +73,7 @@ def test_plugin_registers_all_tools():
         "pubmed_search",
         "uniprot_search",
         "rcsb_search",
+        "inspect_structure",
         "rfd3_design",
         "protein_mpnn_design",
         "esmfold_predict",
@@ -83,6 +113,28 @@ def test_rfd3_contig_validation_rejects_bad_chain_and_range(tmp_path):
     )
 
     assert any("missing chain C" in err for err in errors)
+    assert any("missing residues" in err for err in errors)
+
+
+def test_rfd3_contig_validation_reads_cif_auth_chain_and_residue_ids(tmp_path):
+    tools, _ = _load_plugin_modules()
+    cif = tmp_path / "target.cif"
+    _write_cif(cif)
+
+    assert tools.validate_rfd3_contig(
+        mode="binder",
+        contig="70-110,/0,A2-3",
+        target_pdb_path=str(cif),
+        hotspot_residues=["B10"],
+    ) == []
+
+    errors = tools.validate_rfd3_contig(
+        mode="binder",
+        contig="70-110,/0,A2-5",
+        target_pdb_path=str(cif),
+        hotspot_residues=[],
+    )
+
     assert any("missing residues" in err for err in errors)
 
 
@@ -153,6 +205,61 @@ def test_esmfold_payload_includes_num_recycles():
     assert payload["chunk_size"] == 64
 
 
+def test_mpnn_command_uses_current_foundry_arguments():
+    tools, _ = _load_plugin_modules()
+    command = tools.build_mpnn_docker_args(
+        {"output_name": "mpnn_out", "num_sequences": 8, "temperature": 0.1, "designed_chains": "A"},
+        "/work/backbone.cif.gz",
+    )
+
+    assert "--out_directory" in command
+    assert command[command.index("--out_directory") + 1] == "/work/mpnn_out"
+    assert "--number_of_batches" in command
+    assert command[command.index("--number_of_batches") + 1] == "8"
+    assert "--checkpoint_path" in command
+    assert command[command.index("--checkpoint_path") + 1] == "/weights/proteinmpnn_v_48_020.pt"
+    assert "--out_folder" not in command
+    assert "--num_seq_per_target" not in command
+
+
+def test_mpnn_schema_does_not_advertise_missing_soluble_model():
+    _load_plugin_modules()
+    schemas = sys.modules["hermes_plugins.protein_design.schemas"]
+    enum = schemas.PROTEIN_MPNN_DESIGN_SCHEMA["parameters"]["properties"]["model_type"]["enum"]
+
+    assert enum == ["protein_mpnn", "ligand_mpnn"]
+
+
+def test_rcsb_chain_summary_reports_ranges_and_gaps(tmp_path):
+    _load_plugin_modules()
+    clients = sys.modules["hermes_plugins.protein_design.clients"]
+    cif = tmp_path / "target.cif"
+    _write_cif(cif)
+
+    summary = clients.summarize_structure_chains(cif)
+
+    assert summary["A"]["range"] == "2-5"
+    assert summary["A"]["continuous_ranges"] == ["2-3", "5"]
+    assert summary["A"]["gaps"] == [4]
+    assert summary["B"]["range"] == "10-10"
+
+
+def test_inspect_structure_reports_chains_hetatm_and_resolution(tmp_path):
+    tools, _ = _load_plugin_modules()
+    cif = tmp_path / "target.cif"
+    _write_cif(cif)
+
+    result = json.loads(tools.handle_inspect_structure({"structure_path": str(cif)}))
+
+    assert result["success"] is True
+    assert result["format"] == "cif"
+    assert result["resolution"] == 1.8
+    assert result["chains"]["A"]["gaps"] == [4]
+    assert result["hetatm_comp_ids"] == ["CRO"]
+    assert result["hetatm_records"][0]["chain"] == "A"
+    assert result["hetatm_records"][0]["residue_number"] == 4
+
+
 def test_esmfold_requires_sequence_or_fasta():
     tools, _ = _load_plugin_modules()
     result = json.loads(tools.handle_esmfold_predict({"output_name": "empty"}))
@@ -167,6 +274,7 @@ def test_each_tool_has_associated_skill_with_valid_frontmatter():
         "pubmed-search",
         "uniprot-search",
         "rcsb-search",
+        "inspect-structure",
         "rfd3-design",
         "protein-mpnn-design",
         "esmfold-predict",

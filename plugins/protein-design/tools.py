@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from .clients import (
+    inspect_structure_file,
+    parse_mmcif_residues,
     parse_pdb_residues,
     search_pubmed,
     search_rcsb,
@@ -82,6 +84,17 @@ def _load_structure_residues(path: Path) -> dict[str, set[int]]:
         temp.write_text(content, encoding="utf-8")
         try:
             return parse_pdb_residues(temp)
+        finally:
+            temp.unlink(missing_ok=True)
+    if suffixes.endswith(".cif") or suffixes.endswith(".mmcif"):
+        return parse_mmcif_residues(path)
+    if suffixes.endswith(".cif.gz") or suffixes.endswith(".mmcif.gz"):
+        temp = path.with_suffix("")
+        with gzip.open(path, "rt", encoding="utf-8", errors="replace") as src:
+            content = src.read()
+        temp.write_text(content, encoding="utf-8")
+        try:
+            return parse_mmcif_residues(temp)
         finally:
             temp.unlink(missing_ok=True)
     return {}
@@ -238,7 +251,31 @@ def handle_rcsb_search(args: dict[str, Any], **_: Any) -> str:
             return_type=str(args.get("return_type") or "entry"),
             download=bool(args.get("download", False)),
             output_dir=str(args.get("output_dir") or ""),
+            download_format=str(args.get("download_format") or "cif"),
         )
+        return json_result(success=True, **result)
+    except Exception as exc:
+        return json_result(success=False, error=str(exc))
+
+
+def handle_inspect_structure(args: dict[str, Any], **_: Any) -> str:
+    try:
+        structure = resolve_workspace_path(str(args.get("structure_path") or ""), must_exist=True)
+        suffixes = "".join(structure.suffixes).lower()
+        if suffixes.endswith((".pdb.gz", ".ent.gz", ".cif.gz", ".mmcif.gz")):
+            temp_suffix = "".join(structure.suffixes[:-1])
+            temp = structure.with_name(f"{structure.stem}_inspect{temp_suffix}")
+            with gzip.open(structure, "rt", encoding="utf-8", errors="replace") as src:
+                temp.write_text(src.read(), encoding="utf-8")
+            try:
+                result = inspect_structure_file(temp)
+            finally:
+                temp.unlink(missing_ok=True)
+            result["path"] = str(structure)
+            result["compressed"] = True
+        else:
+            result = inspect_structure_file(structure)
+            result["compressed"] = False
         return json_result(success=True, **result)
     except Exception as exc:
         return json_result(success=False, error=str(exc))
@@ -303,14 +340,22 @@ def handle_rfd3_design(args: dict[str, Any], **_: Any) -> str:
 def build_mpnn_docker_args(args: dict[str, Any], structure_container_path: str) -> list[str]:
     output_name = str(args.get("output_name") or "mpnn_design")
     model_type = str(args.get("model_type") or "protein_mpnn")
+    foundry_model_type = "protein_mpnn" if model_type == "soluble_mpnn" else model_type
+    checkpoint_path = {
+        "protein_mpnn": "/weights/proteinmpnn_v_48_020.pt",
+        "soluble_mpnn": "/weights/proteinmpnn_v_48_020.pt",
+        "ligand_mpnn": "/weights/ligandmpnn_v_32_010_25.pt",
+    }.get(model_type)
     command = [
         "mpnn",
         "--structure_path", structure_container_path,
-        "--model_type", "protein_mpnn" if model_type == "soluble_mpnn" else model_type,
-        "--out_folder", f"/work/{output_name}",
-        "--num_seq_per_target", str(_clamp_int(args.get("num_sequences"), 16, 1, None)),
+        "--model_type", foundry_model_type,
+        "--out_directory", f"/work/{output_name}",
+        "--number_of_batches", str(_clamp_int(args.get("num_sequences"), 16, 1, None)),
         "--temperature", str(float(args.get("temperature", 0.1) or 0.1)),
     ]
+    if checkpoint_path:
+        command.extend(["--checkpoint_path", checkpoint_path])
     if model_type in {"protein_mpnn", "ligand_mpnn", "soluble_mpnn"}:
         command.extend(["--is_legacy_weights", "True"])
     if args.get("fixed_positions"):
@@ -320,15 +365,64 @@ def build_mpnn_docker_args(args: dict[str, Any], structure_container_path: str) 
     return command
 
 
+def _mpnn_structure_inputs(args: dict[str, Any]) -> list[Path]:
+    explicit_paths = _as_list(args.get("structure_paths"))
+    if explicit_paths:
+        return [resolve_workspace_path(path, must_exist=True) for path in explicit_paths]
+
+    structure_arg = str(args.get("structure_path") or "").strip()
+    if not structure_arg:
+        raise ValueError("structure_path or structure_paths is required")
+    structure = resolve_workspace_path(structure_arg, must_exist=True)
+    if not structure.is_dir():
+        return [structure]
+
+    patterns = ("*.pdb", "*.ent", "*.cif", "*.mmcif", "*.pdb.gz", "*.ent.gz", "*.cif.gz", "*.mmcif.gz")
+    structures: list[Path] = []
+    for pattern in patterns:
+        structures.extend(sorted(structure.glob(pattern)))
+    if not structures:
+        raise ValueError(f"No PDB/CIF structure files found in directory: {structure}")
+    return structures
+
+
+def _safe_output_suffix(path: Path) -> str:
+    name = path.name
+    for suffix in (".pdb.gz", ".ent.gz", ".cif.gz", ".mmcif.gz", ".pdb", ".ent", ".cif", ".mmcif"):
+        if name.lower().endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "structure"
+
+
 def handle_protein_mpnn_design(args: dict[str, Any], **_: Any) -> str:
     try:
-        structure = resolve_workspace_path(str(args.get("structure_path") or ""), must_exist=True)
-        mount_root = common_mount_root([structure])
-        docker_args = build_mpnn_docker_args(args, to_container_path(structure, mount_root))
-        run = run_docker(str(config_value("foundry_image", DEFAULT_FOUNDRY_IMAGE)), docker_args, mount_root=mount_root)
-        output_dir = mount_root / str(args.get("output_name") or "mpnn_design")
-        output_files = [str(p) for p in output_dir.rglob("*") if p.is_file()] if output_dir.exists() else []
-        return json_result(success=run["success"], output_dir=str(output_dir), output_files=output_files, docker=run)
+        structures = _mpnn_structure_inputs(args)
+        mount_root = common_mount_root(structures)
+        output_name = str(args.get("output_name") or "mpnn_design")
+        runs: list[dict[str, Any]] = []
+        output_dirs: list[str] = []
+        output_files: list[str] = []
+
+        for index, structure in enumerate(structures, start=1):
+            run_args = dict(args)
+            if len(structures) > 1:
+                run_args["output_name"] = f"{output_name}_{index}_{_safe_output_suffix(structure)}"
+            docker_args = build_mpnn_docker_args(run_args, to_container_path(structure, mount_root))
+            run = run_docker(str(config_value("foundry_image", DEFAULT_FOUNDRY_IMAGE)), docker_args, mount_root=mount_root)
+            out_dir = mount_root / str(run_args.get("output_name") or "mpnn_design")
+            output_dirs.append(str(out_dir))
+            if out_dir.exists():
+                output_files.extend(str(p) for p in out_dir.rglob("*") if p.is_file())
+            runs.append({"structure_path": str(structure), "output_dir": str(out_dir), "docker": run})
+
+        return json_result(
+            success=all(item["docker"]["success"] for item in runs),
+            output_dir=output_dirs[0] if len(output_dirs) == 1 else None,
+            output_dirs=output_dirs,
+            output_files=output_files,
+            runs=runs,
+        )
     except Exception as exc:
         return json_result(success=False, error=str(exc))
 

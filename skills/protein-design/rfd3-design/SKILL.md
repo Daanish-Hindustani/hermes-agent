@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [protein-design, rfd3, rfdiffusion3, backbone, contigs]
-    related_skills: [rcsb-search, protein-mpnn-design]
+    related_skills: [rcsb-search, inspect-structure, protein-mpnn-design]
 ---
 
 # RFdiffusion3 Design
@@ -43,15 +43,26 @@ to run `hermes setup tools` and choose Protein Design local compute, or run
    - `partial_diffusion`: start from an input structure and perturb/redesign selected regions.
 
 2. Inspect the target structure before building a contig.
-   - Use `rcsb_search` or local file parsing to identify chains, residue
-     numbering, missing residues, ligands, and target chain IDs.
+   - Prefer `rcsb_search` to identify chains, residue numbering, missing
+     residues, ligands, and target chain IDs.
+   - Use `inspect_structure` for local target files and generated RFD3 outputs.
+   - Do not install Python packages or use ad hoc shell parsing just to inspect
+     an RCSB structure. If `rcsb_search` is unavailable, tell the user the
+     `protein_design` toolset is not active and ask them to run `hermes tools`.
    - Confirm residue identifiers match the actual file, not paper numbering.
+   - Watch for HETATM or modified residues such as chromophores and
+     post-translational modifications. They may appear as numbering gaps in
+     the polymer chain; split fixed target ranges at real gaps rather than
+     pretending the target is continuous.
 
 3. Binder design.
    - Keep the target chain fixed after a chain break.
    - Pattern: `<binder_length>,/0,<target_chain_start-end>`.
    - Example: `70-110,/0,A1-240`.
    - Put hotspots in `hotspot_residues`, not inside `contig`.
+   - For gapped targets, stitch actual continuous target ranges with `/0`
+     separators or use a prepared target file containing only the intended
+     continuous chain context.
 
 4. Motif scaffolding.
    - Place fixed motif residues in the contig and surround them with designed
@@ -98,3 +109,10 @@ or two variables per round:
 Record the contig, hotspots, `guide_scale`, `num_timesteps`, and output path for
 each round so later ProteinMPNN/ESMFold results can be traced back to the exact
 RFD3 settings.
+
+## Output Notes
+
+RFD3 outputs may remap chains. In many binder runs the designed binder is chain
+`A`, while target segments become later chains such as `B`, `C`, or `D`. Check
+the generated JSON metadata, especially any `diffused_index_map`, before telling
+ProteinMPNN which chain to design.

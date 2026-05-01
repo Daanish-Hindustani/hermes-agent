@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [protein-design, binder-design, rfd3, proteinmpnn, esmfold]
-    related_skills: [pubmed-search, uniprot-search, rcsb-search, rfd3-design, protein-mpnn-design, esmfold-predict]
+    related_skills: [pubmed-search, uniprot-search, rcsb-search, inspect-structure, rfd3-design, protein-mpnn-design, esmfold-predict]
 ---
 
 # Protein Binder Design
@@ -66,14 +66,25 @@ Only run heavyweight compute tools when all are true:
    - Identify the actual chain IDs and residue numbering in the downloaded file.
    - Keep ligand/cofactor/context chains when they define the binding site.
 
-5. Build the RFD3 binder contig.
+5. Prepare the target structure.
+   - Use `inspect_structure` on the downloaded/prepared file before writing
+     contigs or hotspots.
+   - Extract the intended target chain, monomer, or minimal biological context.
+   - Handle HETATM records, chromophores, modified residues, cofactors, and
+     post-translational modifications intentionally.
+   - Identify and document gaps and continuous residue ranges.
+   - Use PDB format when strict column validation matters, or CIF when the
+     downstream tool accepts it directly.
+   - Verify every hotspot residue is present in the prepared file.
+
+6. Build the RFD3 binder contig.
    - Inspect the target file before writing the contig.
    - Use the binder pattern: `<binder_length>,/0,<target_chain_start-end>`.
    - Example: `70-110,/0,A1-240`.
    - Put epitope/interface residues in `hotspot_residues`, not in the contig.
    - Include only target chains/ranges needed for binding context.
 
-6. Run `rfd3_design` for backbone generation.
+7. Run `rfd3_design` for backbone generation.
    - Skip this step and produce a design plan if no target structure/contig is
      ready or local compute has not been set up.
    - Start with `num_designs=1-4` and lower `num_timesteps` for input/debug
@@ -82,19 +93,19 @@ Only run heavyweight compute tools when all are true:
      most defensible contig/hotspot set.
    - Scale only after the input spec passes validation and outputs look sane.
 
-7. Run `protein_mpnn_design` on promising backbones.
+8. Run `protein_mpnn_design` on promising backbones.
    - Use `ligand_mpnn` if ligand, ion, DNA/RNA, or atom context matters.
    - Fix residues that must remain unchanged.
    - Sample multiple sequences for each backbone. Start around
      `temperature=0.1`; increase to `0.2-0.3` when diversity is too low.
 
-8. Run `esmfold_predict` for sequence-level triage.
+9. Run `esmfold_predict` for sequence-level triage.
    - Do not call ESMFold without a concrete amino-acid sequence or FASTA file.
    - Start with `num_recycles=4`.
    - Reject candidates with low-confidence cores, broken topology, or weak
      confidence in the interface/motif region.
 
-9. Rank candidates and choose the next round.
+10. Rank candidates and choose the next round.
    - Keep a short candidate table with backbone path, sequence path, key
      parameters, fold confidence, observed problems, and decision.
    - Call the current winner "best computational candidate", not "validated

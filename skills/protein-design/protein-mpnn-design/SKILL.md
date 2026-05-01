@@ -25,12 +25,13 @@ report the setup requirement and continue planning.
 2. Choose `model_type`:
    - `protein_mpnn` for protein-only fixed-backbone design.
    - `ligand_mpnn` when ligand, ion, DNA/RNA, or other atom context matters.
-   - `soluble_mpnn` when soluble expression is a priority.
 3. Set `designed_chains` when only some chains should change.
 4. Set `fixed_positions` when catalytic/interface residues must remain fixed.
-5. Generate multiple sequences and keep diversity.
-6. Validate outputs with `esmfold_predict`.
-7. Feed failures back into the binder campaign: adjust temperature, fixed
+5. Pass a directory or `structure_paths` list when designing sequences for a
+   batch of RFD3 backbones.
+6. Generate multiple sequences and keep diversity.
+7. Validate outputs with `esmfold_predict`.
+8. Feed failures back into the binder campaign: adjust temperature, fixed
    positions, or backbone selection before generating another sequence batch.
 
 ## Temperature Guidance

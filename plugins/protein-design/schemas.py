@@ -64,9 +64,28 @@ RCSB_SEARCH_SCHEMA = {
                 "default": "entry",
             },
             "download": {"type": "boolean", "default": False},
-            "output_dir": {"type": "string", "description": "Directory for downloaded CIF files."},
+            "download_format": {
+                "type": "string",
+                "enum": ["cif", "pdb"],
+                "default": "cif",
+                "description": "Structure file format to download when download=true.",
+            },
+            "output_dir": {"type": "string", "description": "Directory for downloaded structure files."},
         },
         "required": ["query"],
+    },
+}
+
+
+INSPECT_STRUCTURE_SCHEMA = {
+    "name": "inspect_structure",
+    "description": "Inspect a local PDB/mmCIF structure file and return chain residue ranges, gaps, HETATM records, and resolution. Does not use Docker.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "structure_path": {"type": "string", "description": "Local PDB, PDB.GZ, CIF, or CIF.GZ path to inspect."},
+        },
+        "required": ["structure_path"],
     },
 }
 
@@ -101,11 +120,16 @@ RFD3_DESIGN_SCHEMA = {
 
 PROTEIN_MPNN_DESIGN_SCHEMA = {
     "name": "protein_mpnn_design",
-    "description": "Run ProteinMPNN/LigandMPNN/SolubleMPNN through an already-installed local Foundry Docker image. Does not pull, build, or install Docker images.",
+    "description": "Run ProteinMPNN/LigandMPNN through an already-installed local Foundry Docker image. Does not pull, build, or install Docker images.",
     "parameters": {
         "type": "object",
         "properties": {
-            "structure_path": {"type": "string"},
+            "structure_path": {"type": "string", "description": "Single input PDB/CIF path, or a directory containing structure files."},
+            "structure_paths": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Optional explicit list of input PDB/CIF paths. Overrides structure_path when provided.",
+            },
             "output_name": {"type": "string"},
             "num_sequences": {"type": "integer", "default": 16, "minimum": 1},
             "temperature": {"type": "number", "default": 0.1},
@@ -113,11 +137,11 @@ PROTEIN_MPNN_DESIGN_SCHEMA = {
             "designed_chains": {"type": "string"},
             "model_type": {
                 "type": "string",
-                "enum": ["protein_mpnn", "ligand_mpnn", "soluble_mpnn"],
+                "enum": ["protein_mpnn", "ligand_mpnn"],
                 "default": "protein_mpnn",
             },
         },
-        "required": ["structure_path", "output_name"],
+        "required": ["output_name"],
     },
 }
 
