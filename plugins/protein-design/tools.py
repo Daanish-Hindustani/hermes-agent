@@ -252,6 +252,7 @@ def handle_rcsb_search(args: dict[str, Any], **_: Any) -> str:
             download=bool(args.get("download", False)),
             output_dir=str(args.get("output_dir") or ""),
             download_format=str(args.get("download_format") or "cif"),
+            pdb_ids=_as_list(args.get("pdb_ids")),
         )
         return json_result(success=True, **result)
     except Exception as exc:
@@ -386,6 +387,31 @@ def _mpnn_structure_inputs(args: dict[str, Any]) -> list[Path]:
     return structures
 
 
+def _pdb_structure_inputs(args: dict[str, Any]) -> list[Path]:
+    explicit_paths = _as_list(args.get("structure_paths"))
+    if explicit_paths:
+        structures = [resolve_workspace_path(path, must_exist=True) for path in explicit_paths]
+    else:
+        structure_arg = str(args.get("structure_path") or "").strip()
+        if not structure_arg:
+            raise ValueError("structure_path or structure_paths is required")
+        structure = resolve_workspace_path(structure_arg, must_exist=True)
+        if not structure.is_dir():
+            structures = [structure]
+        else:
+            structures = []
+            for pattern in ("*.pdb", "*.ent", "*.pdb.gz", "*.ent.gz"):
+                structures.extend(sorted(structure.glob(pattern)))
+            if not structures:
+                raise ValueError(f"No PDB structure files found in directory: {structure}")
+
+    for item in structures:
+        suffixes = "".join(item.suffixes).lower()
+        if not suffixes.endswith((".pdb", ".ent", ".pdb.gz", ".ent.gz")):
+            raise ValueError(f"Rosetta InterfaceAnalyzer requires PDB input, got: {item}")
+    return structures
+
+
 def _safe_output_suffix(path: Path) -> str:
     name = path.name
     for suffix in (".pdb.gz", ".ent.gz", ".cif.gz", ".mmcif.gz", ".pdb", ".ent", ".cif", ".mmcif"):
@@ -393,6 +419,85 @@ def _safe_output_suffix(path: Path) -> str:
             name = name[: -len(suffix)]
             break
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "structure"
+
+
+def build_rosetta_interface_analyzer_script(
+    args: dict[str, Any],
+    structure_container_path: str,
+    score_container_path: str,
+) -> str:
+    executable = str(
+        args.get("executable")
+        or config_value("rosetta_interface_analyzer_executable", "InterfaceAnalyzer.linuxgccrelease")
+    )
+    interface = str(args.get("interface") or "").strip()
+    if not interface:
+        raise ValueError("interface is required, e.g. A_B")
+
+    candidates = [
+        executable,
+        "InterfaceAnalyzer.default.linuxgccrelease",
+        "InterfaceAnalyzer.linuxgccrelease",
+        "interface_analyzer.linuxgccrelease",
+        "rosetta_scripts.linuxgccrelease",
+    ]
+    deduped_candidates: list[str] = []
+    for candidate in candidates:
+        if candidate and candidate not in deduped_candidates:
+            deduped_candidates.append(candidate)
+
+    candidate_list = " ".join(_shell_quote(candidate) for candidate in deduped_candidates)
+    flags = [
+        "-s", structure_container_path,
+        "-interface", interface,
+        "-out:file:scorefile", score_container_path,
+        "-out:no_nstruct_label",
+    ]
+    if bool(args.get("pack_separated", True)):
+        flags.append("-pack_separated")
+    if bool(args.get("compute_packstat", False)):
+        flags.append("-compute_packstat")
+    quoted_flags = " ".join(_shell_quote(flag) for flag in flags)
+    return (
+        "set -euo pipefail; "
+        "EXE=''; "
+        f"for CAND in {candidate_list}; do "
+        'if command -v "$CAND" >/dev/null 2>&1; then EXE="$CAND"; break; fi; '
+        "done; "
+        'if [ -z "${EXE:-}" ]; then echo "InterfaceAnalyzer executable not found" >&2; exit 127; fi; '
+        f'"$EXE" {quoted_flags}'
+    )
+
+
+def _shell_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+
+def parse_rosetta_scorefile(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    header: list[str] | None = None
+    rows: list[dict[str, Any]] = []
+    for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line.startswith("SCORE:"):
+            continue
+        parts = line.split()[1:]
+        if not parts:
+            continue
+        if parts[0] == "score" or "description" in parts:
+            header = parts
+            continue
+        if not header:
+            continue
+        row: dict[str, Any] = {}
+        for key, value in zip(header, parts):
+            try:
+                row[key] = float(value)
+            except ValueError:
+                row[key] = value
+        rows.append(row)
+    return rows
 
 
 def handle_protein_mpnn_design(args: dict[str, Any], **_: Any) -> str:
@@ -421,6 +526,47 @@ def handle_protein_mpnn_design(args: dict[str, Any], **_: Any) -> str:
             output_dir=output_dirs[0] if len(output_dirs) == 1 else None,
             output_dirs=output_dirs,
             output_files=output_files,
+            runs=runs,
+        )
+    except Exception as exc:
+        return json_result(success=False, error=str(exc))
+
+
+def handle_rosetta_interface_analyzer(args: dict[str, Any], **_: Any) -> str:
+    try:
+        structures = _pdb_structure_inputs(args)
+        mount_root = common_mount_root(structures)
+        output_name = str(args.get("output_name") or "interface_analysis")
+        out_root = ensure_workspace(mount_root / output_name)
+        runs: list[dict[str, Any]] = []
+        score_files: list[str] = []
+
+        for index, structure in enumerate(structures, start=1):
+            suffix = _safe_output_suffix(structure)
+            score_path = out_root / f"{index}_{suffix}.sc" if len(structures) > 1 else out_root / f"{output_name}.sc"
+            script = build_rosetta_interface_analyzer_script(
+                args,
+                to_container_path(structure, mount_root),
+                to_container_path(score_path, mount_root),
+            )
+            run = run_docker(
+                str(config_value("foundry_image", DEFAULT_FOUNDRY_IMAGE)),
+                ["bash", "-lc", script],
+                mount_root=mount_root,
+            )
+            scores = parse_rosetta_scorefile(score_path)
+            score_files.append(str(score_path))
+            runs.append({
+                "structure_path": str(structure),
+                "score_file": str(score_path),
+                "scores": scores,
+                "docker": run,
+            })
+
+        return json_result(
+            success=all(item["docker"]["success"] for item in runs),
+            output_dir=str(out_root),
+            score_files=score_files,
             runs=runs,
         )
     except Exception as exc:

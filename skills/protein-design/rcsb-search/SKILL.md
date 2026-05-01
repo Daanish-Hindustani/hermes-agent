@@ -18,6 +18,8 @@ chain IDs, ligand context, structure download, or a target file for RFD3/MPNN.
 ## Workflow
 
 1. Search by text, sequence, UniProt accession, or ligand.
+   - If the user provides known PDB IDs, call `rcsb_search` with `pdb_ids`
+     instead of text search.
 2. Prefer high-resolution structures with relevant biological assemblies and
    bound ligands/cofactors when those matter for the design goal.
 3. Check experimental method and resolution before trusting a structure.

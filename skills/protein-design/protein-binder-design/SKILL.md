@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [protein-design, binder-design, rfd3, proteinmpnn, esmfold]
-    related_skills: [pubmed-search, uniprot-search, rcsb-search, inspect-structure, rfd3-design, protein-mpnn-design, esmfold-predict]
+    related_skills: [pubmed-search, uniprot-search, rcsb-search, inspect-structure, rfd3-design, protein-mpnn-design, esmfold-predict, rosetta-interface-analyzer]
 ---
 
 # Protein Binder Design
@@ -105,7 +105,13 @@ Only run heavyweight compute tools when all are true:
    - Reject candidates with low-confidence cores, broken topology, or weak
      confidence in the interface/motif region.
 
-10. Rank candidates and choose the next round.
+10. Score promising complexes with `rosetta_interface_analyzer` when a
+    binder-target complex PDB is available.
+   - Use `inspect_structure` first because RFD3 may remap chain IDs.
+   - Set the interface explicitly, e.g. `A_B`.
+   - Treat Rosetta scores as computational triage, not measured affinity.
+
+11. Rank candidates and choose the next round.
    - Keep a short candidate table with backbone path, sequence path, key
      parameters, fold confidence, observed problems, and decision.
    - Call the current winner "best computational candidate", not "validated
@@ -165,6 +171,8 @@ Rank by a transparent rubric. Prefer candidates that satisfy all of these:
 - Hotspots/epitope are represented in the design setup.
 - ProteinMPNN produced diverse sequences without obvious forbidden motifs.
 - ESMFold shows a confident binder core and no broken topology.
+- Rosetta InterfaceAnalyzer scores, when available, do not flag an obviously
+  poor or strained interface.
 - Candidate is not merely the top score from one run; it survives at least one
   reasonable parameter perturbation or has close variants.
 
@@ -184,6 +192,8 @@ call each tool explicitly:
 - `rfd3_design` generates backbones only; it does not design sequences.
 - `protein_mpnn_design` designs sequences only; it does not fold them.
 - `esmfold_predict` folds sequences only; it does not redesign failed candidates.
+- `rosetta_interface_analyzer` scores an existing complex only; it does not
+  redesign or dock candidates.
 
 This separation is deliberate. It keeps each tool testable and lets the user run
 partial workflows without paying for unnecessary compute.
@@ -197,6 +207,7 @@ When summarizing binder-design results, separate:
 - RFD3 backbone generation status
 - ProteinMPNN sequence design status
 - ESMFold confidence
+- Rosetta/interface scoring metrics when run
 - Remaining experimental or computational validation needed
 
 Never describe a computational binder as experimentally validated unless the user

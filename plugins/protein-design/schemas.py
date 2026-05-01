@@ -51,7 +51,12 @@ RCSB_SEARCH_SCHEMA = {
     "parameters": {
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "Text, sequence, UniProt accession, or ligand query."},
+            "query": {"type": "string", "description": "Text, sequence, UniProt accession, or ligand query. Optional when pdb_ids is provided."},
+            "pdb_ids": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Known 4-character PDB IDs for direct lookup/download, e.g. ['2B3P']. Bypasses search.",
+            },
             "search_type": {
                 "type": "string",
                 "enum": ["text", "sequence", "uniprot", "ligand"],
@@ -72,7 +77,7 @@ RCSB_SEARCH_SCHEMA = {
             },
             "output_dir": {"type": "string", "description": "Directory for downloaded structure files."},
         },
-        "required": ["query"],
+        "required": [],
     },
 }
 
@@ -142,6 +147,35 @@ PROTEIN_MPNN_DESIGN_SCHEMA = {
             },
         },
         "required": ["output_name"],
+    },
+}
+
+
+ROSETTA_INTERFACE_ANALYZER_SCHEMA = {
+    "name": "rosetta_interface_analyzer",
+    "description": "Run Rosetta InterfaceAnalyzer on a designed complex to estimate interface quality metrics such as dG_separated. Requires an image with Rosetta InterfaceAnalyzer installed.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "structure_path": {"type": "string", "description": "Single input PDB path, or a directory containing PDB files."},
+            "structure_paths": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Optional explicit list of input PDB paths. Overrides structure_path when provided.",
+            },
+            "interface": {
+                "type": "string",
+                "description": "Rosetta interface definition such as A_B for binder chain A against target chain B.",
+            },
+            "output_name": {"type": "string"},
+            "pack_separated": {"type": "boolean", "default": True},
+            "compute_packstat": {"type": "boolean", "default": False},
+            "executable": {
+                "type": "string",
+                "description": "Optional InterfaceAnalyzer executable name/path inside the image.",
+            },
+        },
+        "required": ["interface", "output_name"],
     },
 }
 

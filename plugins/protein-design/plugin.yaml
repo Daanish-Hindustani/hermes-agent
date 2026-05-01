@@ -1,6 +1,6 @@
 name: protein-design
 version: 0.1.0
-description: "Protein design tools: PubMed, UniProt, RCSB, RFdiffusion3, ProteinMPNN, and ESMFold."
+description: "Protein design tools: PubMed, UniProt, RCSB, RFdiffusion3, ProteinMPNN, Rosetta InterfaceAnalyzer, and ESMFold."
 author: Hermes Agent
 kind: standalone
 provides_tools:
@@ -10,4 +10,5 @@ provides_tools:
   - inspect_structure
   - rfd3_design
   - protein_mpnn_design
+  - rosetta_interface_analyzer
   - esmfold_predict

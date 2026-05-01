@@ -94,6 +94,11 @@ to run `hermes setup tools` and choose Protein Design local compute, or run
   binder candidates.
 - After RFD3, use `protein_mpnn_design` to design sequences and
   `esmfold_predict` to triage foldability.
+- Foundry's `rfd3 design` may also produce default MPNN output directories
+  alongside the generated backbones. Treat those as a convenience baseline
+  using Foundry defaults; call `protein_mpnn_design` explicitly when you need
+  different temperatures, model type, fixed positions, designed chains, or a
+  reproducible sequence-design sweep.
 
 ## Binder Iteration
 
@@ -116,3 +121,9 @@ RFD3 outputs may remap chains. In many binder runs the designed binder is chain
 `A`, while target segments become later chains such as `B`, `C`, or `D`. Check
 the generated JSON metadata, especially any `diffused_index_map`, before telling
 ProteinMPNN which chain to design.
+
+Foundry output filenames can repeat the requested prefix, for example an
+`output_name` of `gfp_binder_r1` may produce files like
+`gfp_binder_r1gfp_binder_r1_0_model_0.cif.gz`. Do not hand-type downstream
+paths from memory; list or inspect the output directory before passing files to
+ProteinMPNN, ESMFold, or interface scoring.

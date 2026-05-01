@@ -35,7 +35,11 @@ the setup requirement and continue planning.
 
 ## Interpretation
 
-- pLDDT is stored in the PDB B-factor field.
+- The tool summary reports pLDDT on a `0-100` scale.
+- In ESMFold output PDB files, pLDDT may appear in the B-factor column on a
+  `0-1` scale depending on the implementation path. When parsing B-factors
+  directly, inspect the value range and multiply by `100` before applying the
+  thresholds below if values look like `0.58` instead of `58`.
 - Mean pLDDT `>80`: high confidence; usually worth finalist consideration.
 - Mean pLDDT `65-80`: moderate confidence; keep as candidates if topology and
   design context look plausible.

@@ -242,10 +242,15 @@ def search_rcsb(
     download: bool = False,
     output_dir: str = "",
     download_format: str = "cif",
+    pdb_ids: list[str] | None = None,
 ) -> dict[str, Any]:
-    payload = build_rcsb_query(query, search_type=search_type, return_type=return_type, max_results=max_results)
-    data = _get_json(RCSB_SEARCH_URL, params={"json": json.dumps(payload)})
-    identifiers = [item.get("identifier") for item in data.get("result_set", []) if item.get("identifier")]
+    direct_ids = normalize_pdb_ids(pdb_ids)
+    if direct_ids:
+        identifiers = direct_ids[:max_results]
+    else:
+        payload = build_rcsb_query(query, search_type=search_type, return_type=return_type, max_results=max_results)
+        data = _get_json(RCSB_SEARCH_URL, params={"json": json.dumps(payload)})
+        identifiers = [item.get("identifier") for item in data.get("result_set", []) if item.get("identifier")]
     entries = []
     for ident in identifiers[:max_results]:
         pdb_id = ident.split("_")[0].split(".")[0].split("-")[0].upper()
@@ -268,7 +273,17 @@ def search_rcsb(
             entry["download_format"] = fmt
             entry["chains"] = summarize_structure_chains(structure_path)
         entries.append(entry)
-    return {"query": query, "search_type": search_type, "results": entries}
+    return {"query": query, "search_type": "pdb_id" if direct_ids else search_type, "pdb_ids": direct_ids, "results": entries}
+
+
+def normalize_pdb_ids(pdb_ids: list[str] | None) -> list[str]:
+    normalized: list[str] = []
+    for raw in pdb_ids or []:
+        for item in str(raw).replace(",", " ").split():
+            pdb_id = item.strip().upper()
+            if re.fullmatch(r"[0-9][A-Z0-9]{3}", pdb_id) and pdb_id not in normalized:
+                normalized.append(pdb_id)
+    return normalized
 
 
 def build_rcsb_query(query: str, *, search_type: str, return_type: str, max_results: int) -> dict[str, Any]:

@@ -76,6 +76,7 @@ def test_plugin_registers_all_tools():
         "inspect_structure",
         "rfd3_design",
         "protein_mpnn_design",
+        "rosetta_interface_analyzer",
         "esmfold_predict",
     }
 
@@ -230,6 +231,31 @@ def test_mpnn_schema_does_not_advertise_missing_soluble_model():
     assert enum == ["protein_mpnn", "ligand_mpnn"]
 
 
+def test_rosetta_interface_analyzer_script_and_score_parser(tmp_path):
+    tools, _ = _load_plugin_modules()
+    script = tools.build_rosetta_interface_analyzer_script(
+        {"interface": "A_B", "pack_separated": True, "compute_packstat": True},
+        "/work/complex.pdb",
+        "/work/interface.sc",
+    )
+
+    assert "InterfaceAnalyzer.linuxgccrelease" in script
+    assert "-interface' 'A_B" in script
+    assert "-pack_separated" in script
+    assert "-compute_packstat" in script
+
+    scorefile = tmp_path / "score.sc"
+    scorefile.write_text(
+        "SCORE: score dG_separated dSASA_int description\n"
+        "SCORE: -123.4 -15.6 1200.0 complex_0001\n",
+        encoding="utf-8",
+    )
+
+    scores = tools.parse_rosetta_scorefile(scorefile)
+
+    assert scores == [{"score": -123.4, "dG_separated": -15.6, "dSASA_int": 1200.0, "description": "complex_0001"}]
+
+
 def test_rcsb_chain_summary_reports_ranges_and_gaps(tmp_path):
     _load_plugin_modules()
     clients = sys.modules["hermes_plugins.protein_design.clients"]
@@ -242,6 +268,24 @@ def test_rcsb_chain_summary_reports_ranges_and_gaps(tmp_path):
     assert summary["A"]["continuous_ranges"] == ["2-3", "5"]
     assert summary["A"]["gaps"] == [4]
     assert summary["B"]["range"] == "10-10"
+
+
+def test_rcsb_direct_pdb_id_lookup_bypasses_search(monkeypatch):
+    _load_plugin_modules()
+    clients = sys.modules["hermes_plugins.protein_design.clients"]
+
+    def fake_get_json(url, params=None, timeout=30.0):
+        assert "rcsbsearch" not in url
+        return {"struct": {"title": "Superfolder GFP"}}
+
+    monkeypatch.setattr(clients, "_get_json", fake_get_json)
+
+    result = clients.search_rcsb("", pdb_ids=["2b3p", "2B3P", "bad"], max_results=5)
+
+    assert result["search_type"] == "pdb_id"
+    assert result["pdb_ids"] == ["2B3P"]
+    assert result["results"][0]["pdb_id"] == "2B3P"
+    assert result["results"][0]["title"] == "Superfolder GFP"
 
 
 def test_inspect_structure_reports_chains_hetatm_and_resolution(tmp_path):
@@ -277,6 +321,7 @@ def test_each_tool_has_associated_skill_with_valid_frontmatter():
         "inspect-structure",
         "rfd3-design",
         "protein-mpnn-design",
+        "rosetta-interface-analyzer",
         "esmfold-predict",
     }
     found = {path.parent.name for path in SKILL_DIR.glob("*/SKILL.md")}

@@ -14,6 +14,7 @@ validation.
 | `inspect_structure` | Local PDB/CIF inspection for chains, gaps, HETATM records, and resolution | Local Python |
 | `rfd3_design` | RFdiffusion3 backbone/design generation | Docker + Foundry |
 | `protein_mpnn_design` | ProteinMPNN/LigandMPNN sequence design | Docker + Foundry |
+| `rosetta_interface_analyzer` | Rosetta InterfaceAnalyzer scoring for binder-target complexes | Docker + Foundry/Rosetta image |
 | `esmfold_predict` | ESMFold structure prediction and foldability triage | Docker + local ESMFold image |
 
 Each tool has a matching skill under `skills/protein-design/`. The skills teach
@@ -339,6 +340,8 @@ single pass that declares a winner too early.
    - Use `uniprot_search` for canonical sequence, domains, features, and PDB refs.
 3. Target structure:
    - Use `rcsb_search` to find/download a structure and identify chains/ligands.
+   - If you already know the structure ID, pass `pdb_ids` directly instead of
+     searching by text.
    - Set `download_format` to `pdb` when strict PDB columns are useful, or
      `cif` when preserving mmCIF metadata is preferable.
    - Use returned `chains` metadata to find residue ranges, continuous ranges,
@@ -358,9 +361,15 @@ single pass that declares a winner too early.
 6. Fold validation:
    - Use `esmfold_predict` with `num_recycles=4` initially, then increase for
      borderline candidates.
-7. Rank and iterate:
+7. Interface scoring:
+   - Use `rosetta_interface_analyzer` on promising binder-target complex PDBs.
+   - Inspect chain IDs first because RFD3 can remap binder/target chains.
+   - More negative `dG_separated` is generally better, but Rosetta scores are
+     computational triage, not measured affinity.
+8. Rank and iterate:
    - Keep a candidate table with contig, hotspots, `guide_scale`,
-     `num_timesteps`, MPNN temperature, fold confidence, and decision.
+     `num_timesteps`, MPNN temperature, fold confidence, interface scores, and
+     decision.
    - Change one or two variables per round instead of rerunning identical jobs.
    - Keep top candidates from distinct settings so the agent preserves diversity.
    - Report the winner as the best computational candidate, not a validated
@@ -380,6 +389,11 @@ Useful parameter moves:
 ESMFold is foldability triage, not binding-affinity proof. Interface scoring,
 relaxation, docking, MD, or wet-lab validation are still needed before claiming
 a binder works.
+
+Rosetta InterfaceAnalyzer can score existing binder-target complexes when the
+configured Foundry/Rosetta image includes an InterfaceAnalyzer executable. If
+the executable name differs, pass the tool's `executable` argument or configure
+`protein_design.rosetta_interface_analyzer_executable`.
 
 ## RFD3 contig setup
 
