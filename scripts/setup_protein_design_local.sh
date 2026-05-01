@@ -8,12 +8,17 @@ set -euo pipefail
 
 FOUNDRY_IMAGE_DEFAULT="rosettacommons/foundry:latest"
 ESMFOLD_IMAGE_DEFAULT="hermes-esmfold:latest"
+ALPHAFOLD2_IMAGE_DEFAULT="ghcr.io/sokrypton/colabfold:latest"
+ALPHAFOLD2_COMMAND_DEFAULT="colabfold_batch"
 
 FOUNDRY_IMAGE="${HERMES_PROTEIN_FOUNDRY_IMAGE:-$FOUNDRY_IMAGE_DEFAULT}"
 ESMFOLD_IMAGE="${HERMES_PROTEIN_ESMFOLD_IMAGE:-$ESMFOLD_IMAGE_DEFAULT}"
+ALPHAFOLD2_IMAGE="${HERMES_PROTEIN_ALPHAFOLD2_IMAGE:-$ALPHAFOLD2_IMAGE_DEFAULT}"
+ALPHAFOLD2_COMMAND="${HERMES_PROTEIN_ALPHAFOLD2_COMMAND:-$ALPHAFOLD2_COMMAND_DEFAULT}"
 HERMES_HOME_DIR="${HERMES_HOME:-$HOME/.hermes}"
 SKIP_FOUNDRY=0
 SKIP_ESMFOLD_BUILD=0
+SKIP_ALPHAFOLD2=0
 SKIP_SMOKE_TESTS=0
 INSTALL_NVIDIA_DRIVER="${HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER:-auto}"
 NVIDIA_DRIVER_PACKAGE="${HERMES_PROTEIN_NVIDIA_DRIVER_PACKAGE:-auto}"
@@ -25,6 +30,7 @@ Usage: scripts/setup_protein_design_local.sh [options]
 Options:
   --skip-foundry        Do not pull/check the Foundry image for RFD3/ProteinMPNN
   --skip-esmfold-build  Do not build/check the local ESMFold image
+  --skip-alphafold2     Do not pull/check the AlphaFold2/ColabFold image
   --skip-smoke-tests    Do not run GPU/tool smoke tests after pull/build
   --install-nvidia-driver
                         Install the recommended Ubuntu NVIDIA compute driver if missing
@@ -37,6 +43,8 @@ Environment overrides:
   HERMES_HOME                            Default: ~/.hermes
   HERMES_PROTEIN_FOUNDRY_IMAGE           Default: rosettacommons/foundry:latest
   HERMES_PROTEIN_ESMFOLD_IMAGE           Default: hermes-esmfold:latest
+  HERMES_PROTEIN_ALPHAFOLD2_IMAGE        Default: ghcr.io/sokrypton/colabfold:latest
+  HERMES_PROTEIN_ALPHAFOLD2_COMMAND      Default: colabfold_batch
   HERMES_PROTEIN_WORKSPACE_ROOT          Default: $HERMES_HOME/protein-design
   HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS Default: 7200
   HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER   auto|1|0, default: auto
@@ -48,6 +56,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-foundry) SKIP_FOUNDRY=1 ;;
     --skip-esmfold-build) SKIP_ESMFOLD_BUILD=1 ;;
+    --skip-alphafold2) SKIP_ALPHAFOLD2=1 ;;
     --skip-smoke-tests) SKIP_SMOKE_TESTS=1 ;;
     --install-nvidia-driver) INSTALL_NVIDIA_DRIVER=1 ;;
     --no-install-nvidia-driver) INSTALL_NVIDIA_DRIVER=0 ;;
@@ -350,6 +359,8 @@ if "protein-design" not in enabled:
 protein = config.setdefault("protein_design", {})
 protein["foundry_image"] = os.environ.get("HERMES_PROTEIN_FOUNDRY_IMAGE", "rosettacommons/foundry:latest")
 protein["esmfold_image"] = os.environ.get("HERMES_PROTEIN_ESMFOLD_IMAGE", "hermes-esmfold:latest")
+protein["alphafold2_image"] = os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:latest")
+protein["alphafold2_command"] = os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_COMMAND", "colabfold_batch")
 protein.setdefault("workspace_root", os.environ.get("HERMES_PROTEIN_WORKSPACE_ROOT", str(home / "protein-design")))
 protein.setdefault("default_timeout_seconds", int(os.environ.get("HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS", "7200")))
 
@@ -427,6 +438,24 @@ setup_esmfold() {
     >/tmp/hermes-esmfold-help.txt
 }
 
+setup_alphafold2() {
+  if [[ "$SKIP_ALPHAFOLD2" == "1" ]]; then
+    log "Skipping AlphaFold2/ColabFold image"
+    return
+  fi
+
+  log "Pulling AlphaFold2/ColabFold image: $ALPHAFOLD2_IMAGE"
+  docker_cmd pull "$ALPHAFOLD2_IMAGE"
+
+  if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
+    return
+  fi
+
+  log "Checking AlphaFold2/ColabFold command"
+  docker_cmd run --rm --gpus all "$ALPHAFOLD2_IMAGE" "$ALPHAFOLD2_COMMAND" --help >/tmp/hermes-alphafold2-help.txt || \
+    warn "AlphaFold2/ColabFold command check failed. Inspect /tmp/hermes-alphafold2-help.txt or set HERMES_PROTEIN_ALPHAFOLD2_COMMAND."
+}
+
 require_docker
 write_config
 DRIVER_INSTALL_STATUS=0
@@ -442,6 +471,7 @@ if ! check_gpu_runtime; then
 fi
 setup_foundry
 setup_esmfold
+setup_alphafold2
 
 if [[ "$GPU_READY" == "0" ]]; then
   cat <<EOF
@@ -466,6 +496,7 @@ Protein-design local compute setup complete.
 Configured images:
   Foundry: $FOUNDRY_IMAGE
   ESMFold: $ESMFOLD_IMAGE
+  AlphaFold2/ColabFold: $ALPHAFOLD2_IMAGE ($ALPHAFOLD2_COMMAND)
 
 Config:
   $HERMES_HOME_DIR/config.yaml

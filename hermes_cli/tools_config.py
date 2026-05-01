@@ -73,7 +73,7 @@ CONFIGURABLE_TOOLSETS = [
     ("discord",         "💬 Discord (read/participate)", "fetch messages, search members, create thread"),
     ("discord_admin",   "🛡️  Discord Server Admin",    "list channels/roles, pin, assign roles"),
     ("yuanbao",          "🤖 Yuanbao",                  "group info, member queries, DM"),
-    ("protein_design",   "🧬 Protein Design",           "PubMed, UniProt, RCSB, RFD3, ProteinMPNN, ESMFold"),
+    ("protein_design",   "🧬 Protein Design",           "PubMed, UniProt, RCSB, RFD3, ProteinMPNN, ESMFold, AF2 multimer"),
 ]
 
 # Toolsets that are OFF by default for new installs.
@@ -455,13 +455,13 @@ TOOL_CATEGORIES = {
     "protein_design": {
         "name": "Protein Design",
         "setup_title": "Set up local compute?",
-        "setup_note": "PubMed, UniProt, and RCSB work over HTTPS. RFD3, ProteinMPNN, and ESMFold need local Docker images.",
+        "setup_note": "PubMed, UniProt, and RCSB work over HTTPS. RFD3, ProteinMPNN, ESMFold, and AF2 multimer need local Docker images.",
         "icon": "🧬",
         "providers": [
             {
                 "name": "Local Docker compute",
                 "badge": "GPU · large downloads",
-                "tag": "Pull Foundry for RFD3/ProteinMPNN and build the local ESMFold image",
+                "tag": "Pull Foundry/AF2 images and build the local ESMFold image",
                 "env_vars": [],
                 "post_setup": "protein_design_local",
             },
@@ -1698,6 +1698,14 @@ def _configure_provider(provider: dict, config: dict):
             protein_cfg.setdefault(
                 "esmfold_image",
                 os.environ.get("HERMES_PROTEIN_ESMFOLD_IMAGE", "hermes-esmfold:latest"),
+            )
+            protein_cfg.setdefault(
+                "alphafold2_image",
+                os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:latest"),
+            )
+            protein_cfg.setdefault(
+                "alphafold2_command",
+                os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_COMMAND", "colabfold_batch"),
             )
 
     # For tools without a specific config key (e.g. image_gen), still

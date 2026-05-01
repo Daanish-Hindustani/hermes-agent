@@ -75,21 +75,24 @@ The setup script:
 - Writes default `protein_design` image/workspace config.
 - Pulls the Foundry image used by RFD3 and ProteinMPNN.
 - Builds the local ESMFold Docker image.
+- Pulls the configured AlphaFold2/ColabFold image used by AF2 multimer
+  complex prediction.
 - Runs GPU and command smoke tests.
 
 Useful script options:
 
 ```bash
 scripts/setup_protein_design_lambda.sh --skip-esmfold-build
+scripts/setup_protein_design_lambda.sh --skip-alphafold2
 scripts/setup_protein_design_lambda.sh --skip-images
 scripts/setup_protein_design_lambda.sh --skip-docker-setup
 scripts/setup_protein_design_lambda.sh --skip-hermes-install
 scripts/setup_protein_design_lambda.sh --install-nvidia-driver
 ```
 
-Use `--skip-esmfold-build` when you only want RFD3/ProteinMPNN first, because
-the ESMFold image can take a while to build. Use `--skip-docker-setup` only if
-you have already confirmed this succeeds:
+Use `--skip-esmfold-build` or `--skip-alphafold2` when you only want
+RFD3/ProteinMPNN first, because the ESMFold build and AF2/ColabFold image can
+take a while. Use `--skip-docker-setup` only if you have already confirmed this succeeds:
 
 ```bash
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
@@ -204,6 +207,7 @@ Useful direct-run options:
 
 ```bash
 scripts/setup_protein_design_local.sh --skip-esmfold-build
+scripts/setup_protein_design_local.sh --skip-alphafold2
 scripts/setup_protein_design_local.sh --skip-foundry
 scripts/setup_protein_design_local.sh --skip-smoke-tests
 scripts/setup_protein_design_local.sh --install-nvidia-driver
@@ -331,10 +335,9 @@ export HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS=3600
 `workspace_root` is where generated FASTA/spec/output files go when the tool
 does not naturally run inside the current project directory.
 
-AlphaFold2/ColabFold images are not pulled by the local setup script because
-database and image choices vary a lot by host. Configure `alphafold2_image` and
-`alphafold2_command` for your AF2/ColabFold runtime before calling
-`alphafold2_multimer_predict`.
+The local setup script pulls `alphafold2_image` and smoke-tests
+`alphafold2_command` unless `--skip-alphafold2` is used. Override those values
+if your AF2/ColabFold image uses a different command or database layout.
 
 ## Binder campaign workflow
 

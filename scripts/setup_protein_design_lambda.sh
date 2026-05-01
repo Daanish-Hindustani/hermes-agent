@@ -11,13 +11,18 @@ set -euo pipefail
 
 FOUNDRY_IMAGE_DEFAULT="rosettacommons/foundry:latest"
 ESMFOLD_IMAGE_DEFAULT="hermes-esmfold:latest"
+ALPHAFOLD2_IMAGE_DEFAULT="ghcr.io/sokrypton/colabfold:latest"
+ALPHAFOLD2_COMMAND_DEFAULT="colabfold_batch"
 
 FOUNDRY_IMAGE="${HERMES_PROTEIN_FOUNDRY_IMAGE:-$FOUNDRY_IMAGE_DEFAULT}"
 ESMFOLD_IMAGE="${HERMES_PROTEIN_ESMFOLD_IMAGE:-$ESMFOLD_IMAGE_DEFAULT}"
+ALPHAFOLD2_IMAGE="${HERMES_PROTEIN_ALPHAFOLD2_IMAGE:-$ALPHAFOLD2_IMAGE_DEFAULT}"
+ALPHAFOLD2_COMMAND="${HERMES_PROTEIN_ALPHAFOLD2_COMMAND:-$ALPHAFOLD2_COMMAND_DEFAULT}"
 HERMES_HOME_DIR="${HERMES_HOME:-$HOME/.hermes}"
 SKIP_HERMES_INSTALL=0
 SKIP_IMAGES=0
 SKIP_ESMFOLD_BUILD=0
+SKIP_ALPHAFOLD2=0
 SKIP_DOCKER_SETUP=0
 SKIP_SMOKE_TESTS=0
 INSTALL_NVIDIA_DRIVER="${HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER:-auto}"
@@ -32,6 +37,7 @@ Options:
   --skip-docker-setup     Do not install/configure Docker or NVIDIA Container Toolkit
   --skip-images           Do not pull/build protein-design Docker images
   --skip-esmfold-build    Pull Foundry, but do not build the ESMFold image
+  --skip-alphafold2       Do not pull/check the AlphaFold2/ColabFold image
   --skip-smoke-tests      Do not run GPU/tool smoke tests after pull/build
   --install-nvidia-driver Install the recommended Ubuntu NVIDIA compute driver if missing
   --no-install-nvidia-driver
@@ -43,6 +49,8 @@ Environment overrides:
   HERMES_HOME                         Default: ~/.hermes
   HERMES_PROTEIN_FOUNDRY_IMAGE        Default: rosettacommons/foundry:latest
   HERMES_PROTEIN_ESMFOLD_IMAGE        Default: hermes-esmfold:latest
+  HERMES_PROTEIN_ALPHAFOLD2_IMAGE     Default: ghcr.io/sokrypton/colabfold:latest
+  HERMES_PROTEIN_ALPHAFOLD2_COMMAND   Default: colabfold_batch
   HERMES_PROTEIN_WORKSPACE_ROOT       Default: $HERMES_HOME/protein-design
   HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS Default: 7200
   HERMES_PROTEIN_INSTALL_NVIDIA_DRIVER   auto|1|0, default: auto
@@ -56,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --skip-docker-setup) SKIP_DOCKER_SETUP=1 ;;
     --skip-images) SKIP_IMAGES=1 ;;
     --skip-esmfold-build) SKIP_ESMFOLD_BUILD=1 ;;
+    --skip-alphafold2) SKIP_ALPHAFOLD2=1 ;;
     --skip-smoke-tests) SKIP_SMOKE_TESTS=1 ;;
     --install-nvidia-driver) INSTALL_NVIDIA_DRIVER=1 ;;
     --no-install-nvidia-driver) INSTALL_NVIDIA_DRIVER=0 ;;
@@ -296,6 +305,8 @@ if "protein-design" not in enabled:
 protein = config.setdefault("protein_design", {})
 protein.setdefault("foundry_image", os.environ.get("HERMES_PROTEIN_FOUNDRY_IMAGE", "rosettacommons/foundry:latest"))
 protein.setdefault("esmfold_image", os.environ.get("HERMES_PROTEIN_ESMFOLD_IMAGE", "hermes-esmfold:latest"))
+protein.setdefault("alphafold2_image", os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:latest"))
+protein.setdefault("alphafold2_command", os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_COMMAND", "colabfold_batch"))
 protein.setdefault("workspace_root", os.environ.get("HERMES_PROTEIN_WORKSPACE_ROOT", str(home / "protein-design")))
 protein.setdefault("default_timeout_seconds", int(os.environ.get("HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS", "7200")))
 
@@ -339,6 +350,9 @@ install_images() {
   if [[ "$SKIP_ESMFOLD_BUILD" == "1" ]]; then
     args+=(--skip-esmfold-build)
   fi
+  if [[ "$SKIP_ALPHAFOLD2" == "1" ]]; then
+    args+=(--skip-alphafold2)
+  fi
   if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
     args+=(--skip-smoke-tests)
   fi
@@ -379,6 +393,9 @@ Config written under:
 
 Protein outputs default to:
   ${HERMES_PROTEIN_WORKSPACE_ROOT:-$HERMES_HOME_DIR/protein-design}
+
+Configured AlphaFold2/ColabFold image:
+  $ALPHAFOLD2_IMAGE ($ALPHAFOLD2_COMMAND)
 
 EOF
 }
