@@ -63,8 +63,9 @@ scripts/setup_protein_design_lambda.sh
 The setup script:
 
 - Installs base Ubuntu packages needed by Hermes and Docker.
-- Installs the recommended Ubuntu NVIDIA compute driver when it is missing
-  and the user accepts the prompt.
+- Checks host `nvidia-smi` before Docker setup and installs the recommended
+  Ubuntu NVIDIA compute driver when it is missing or cannot communicate with
+  the driver.
 - Installs Docker if it is missing.
 - Installs and configures NVIDIA Container Toolkit for `docker run --gpus all`.
 - Runs `./setup-hermes.sh` to create the repo-local Hermes virtualenv.
@@ -92,7 +93,8 @@ you have already confirmed this succeeds:
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
-If the NVIDIA driver is missing, run the setup script with:
+If the NVIDIA driver is missing or `nvidia-smi` says it cannot communicate with
+the NVIDIA driver, rerun the setup script with:
 
 ```bash
 scripts/setup_protein_design_lambda.sh --install-nvidia-driver

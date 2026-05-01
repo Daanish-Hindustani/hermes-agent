@@ -111,6 +111,102 @@ install_base_packages() {
     python3-venv
 }
 
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|y|Y|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_falsey() {
+  case "${1:-}" in
+    0|false|FALSE|no|NO|n|N|off|OFF) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+prompt_yes_no() {
+  local question="$1"
+  local default="${2:-no}"
+  local prompt="[y/N]"
+  if [[ "$default" == "yes" ]]; then
+    prompt="[Y/n]"
+  fi
+
+  if [[ ! -t 0 ]]; then
+    [[ "$default" == "yes" ]]
+    return
+  fi
+
+  local reply
+  read -r -p "$question $prompt " reply
+  reply="${reply:-$default}"
+  case "$reply" in
+    y|Y|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+host_nvidia_smi_works() {
+  command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/tmp/hermes-lambda-nvidia-smi.txt 2>&1
+}
+
+install_nvidia_driver() {
+  log "Installing NVIDIA driver packages"
+  sudo apt-get update
+  sudo apt-get install -y --no-install-recommends \
+    ubuntu-drivers-common \
+    pciutils \
+    "linux-headers-$(uname -r)"
+
+  if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi enabled; then
+    warn "Secure Boot appears to be enabled. Ubuntu may prompt for MOK enrollment during driver installation."
+  fi
+
+  log "Available NVIDIA compute drivers"
+  sudo ubuntu-drivers list --gpgpu || true
+
+  if [[ "$NVIDIA_DRIVER_PACKAGE" != "auto" ]]; then
+    sudo apt-get install -y "$NVIDIA_DRIVER_PACKAGE"
+  else
+    sudo ubuntu-drivers install --gpgpu
+  fi
+
+  cat <<EOF
+
+NVIDIA driver installation finished.
+
+A reboot is required before nvidia-smi and Docker GPU containers work:
+  sudo reboot
+
+After reboot, rerun:
+  scripts/setup_protein_design_lambda.sh
+
+EOF
+}
+
+ensure_nvidia_driver() {
+  if [[ "$SKIP_SMOKE_TESTS" == "1" ]]; then
+    return 0
+  fi
+  if host_nvidia_smi_works; then
+    log "Host NVIDIA driver is working"
+    return 0
+  fi
+
+  warn "Host nvidia-smi is missing or failing. Inspect /tmp/hermes-lambda-nvidia-smi.txt if it exists."
+  warn "Lambda Cloud GPU instances need a working host NVIDIA driver before Docker GPU runtime can work."
+
+  if is_falsey "$INSTALL_NVIDIA_DRIVER"; then
+    return 1
+  fi
+  if is_truthy "$INSTALL_NVIDIA_DRIVER" || prompt_yes_no "Install the recommended Ubuntu NVIDIA compute driver now? This requires sudo and a reboot." "yes"; then
+    install_nvidia_driver
+    return 2
+  fi
+  return 1
+}
+
 install_docker_if_missing() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker already installed: $(docker --version)"
@@ -135,6 +231,11 @@ install_nvidia_container_toolkit() {
   fi
 
   install_base_packages
+  local driver_status=0
+  ensure_nvidia_driver || driver_status=$?
+  if [[ "$driver_status" == "2" ]]; then
+    exit 3
+  fi
   install_docker_if_missing
 
   if command -v nvidia-ctk >/dev/null 2>&1; then
