@@ -153,7 +153,7 @@ host_nvidia_smi_works() {
 
 install_nvidia_driver() {
   log "Installing NVIDIA driver packages"
-  sudo apt-get update
+  sudo apt update
   sudo apt-get install -y --no-install-recommends \
     ubuntu-drivers-common \
     pciutils \
@@ -163,13 +163,13 @@ install_nvidia_driver() {
     warn "Secure Boot appears to be enabled. Ubuntu may prompt for MOK enrollment during driver installation."
   fi
 
-  log "Available NVIDIA compute drivers"
-  sudo ubuntu-drivers list --gpgpu || true
+  log "Detected NVIDIA driver recommendations"
+  sudo ubuntu-drivers devices || true
 
   if [[ "$NVIDIA_DRIVER_PACKAGE" != "auto" ]]; then
     sudo apt-get install -y "$NVIDIA_DRIVER_PACKAGE"
   else
-    sudo ubuntu-drivers install --gpgpu
+    sudo ubuntu-drivers autoinstall
   fi
 
   cat <<EOF

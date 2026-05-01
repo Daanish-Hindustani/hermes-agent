@@ -101,6 +101,15 @@ scripts/setup_protein_design_lambda.sh --install-nvidia-driver
 sudo reboot
 ```
 
+The Lambda script uses Ubuntu's recommended driver flow internally:
+
+```bash
+sudo apt update
+sudo ubuntu-drivers devices
+sudo ubuntu-drivers autoinstall
+sudo reboot
+```
+
 After reboot, rerun the setup script so Docker GPU checks and model image smoke
 tests can complete.
 
