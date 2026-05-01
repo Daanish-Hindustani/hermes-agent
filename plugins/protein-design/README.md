@@ -315,7 +315,7 @@ Relevant config keys in `~/.hermes/config.yaml`:
 protein_design:
   foundry_image: rosettacommons/foundry:latest
   esmfold_image: hermes-esmfold:latest
-  alphafold2_image: ghcr.io/sokrypton/colabfold:latest
+  alphafold2_image: ghcr.io/sokrypton/colabfold:1.6.1-cuda12
   alphafold2_command: colabfold_batch
   workspace_root: ~/.hermes/protein-design
   default_timeout_seconds: 3600
@@ -326,7 +326,7 @@ Environment variable overrides are also supported:
 ```bash
 export HERMES_PROTEIN_FOUNDRY_IMAGE=rosettacommons/foundry:latest
 export HERMES_PROTEIN_ESMFOLD_IMAGE=hermes-esmfold:latest
-export HERMES_PROTEIN_ALPHAFOLD2_IMAGE=ghcr.io/sokrypton/colabfold:latest
+export HERMES_PROTEIN_ALPHAFOLD2_IMAGE=ghcr.io/sokrypton/colabfold:1.6.1-cuda12
 export HERMES_PROTEIN_ALPHAFOLD2_COMMAND=colabfold_batch
 export HERMES_PROTEIN_WORKSPACE_ROOT="$HOME/.hermes/protein-design"
 export HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS=3600

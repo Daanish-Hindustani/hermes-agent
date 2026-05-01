@@ -486,7 +486,7 @@ def handle_alphafold2_multimer_predict(args: dict[str, Any], **_: Any) -> str:
             to_container_path(fasta_path, mount_root),
             to_container_path(out_dir, mount_root),
         )
-        image = str(args.get("image") or config_value("alphafold2_image", "ghcr.io/sokrypton/colabfold:latest"))
+        image = str(args.get("image") or config_value("alphafold2_image", "ghcr.io/sokrypton/colabfold:1.6.1-cuda12"))
         run = run_docker(
             image,
             docker_args,

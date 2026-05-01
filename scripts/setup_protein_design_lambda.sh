@@ -11,7 +11,7 @@ set -euo pipefail
 
 FOUNDRY_IMAGE_DEFAULT="rosettacommons/foundry:latest"
 ESMFOLD_IMAGE_DEFAULT="hermes-esmfold:latest"
-ALPHAFOLD2_IMAGE_DEFAULT="ghcr.io/sokrypton/colabfold:latest"
+ALPHAFOLD2_IMAGE_DEFAULT="ghcr.io/sokrypton/colabfold:1.6.1-cuda12"
 ALPHAFOLD2_COMMAND_DEFAULT="colabfold_batch"
 
 FOUNDRY_IMAGE="${HERMES_PROTEIN_FOUNDRY_IMAGE:-$FOUNDRY_IMAGE_DEFAULT}"
@@ -49,7 +49,7 @@ Environment overrides:
   HERMES_HOME                         Default: ~/.hermes
   HERMES_PROTEIN_FOUNDRY_IMAGE        Default: rosettacommons/foundry:latest
   HERMES_PROTEIN_ESMFOLD_IMAGE        Default: hermes-esmfold:latest
-  HERMES_PROTEIN_ALPHAFOLD2_IMAGE     Default: ghcr.io/sokrypton/colabfold:latest
+  HERMES_PROTEIN_ALPHAFOLD2_IMAGE     Default: ghcr.io/sokrypton/colabfold:1.6.1-cuda12
   HERMES_PROTEIN_ALPHAFOLD2_COMMAND   Default: colabfold_batch
   HERMES_PROTEIN_WORKSPACE_ROOT       Default: $HERMES_HOME/protein-design
   HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS Default: 7200
@@ -305,7 +305,7 @@ if "protein-design" not in enabled:
 protein = config.setdefault("protein_design", {})
 protein.setdefault("foundry_image", os.environ.get("HERMES_PROTEIN_FOUNDRY_IMAGE", "rosettacommons/foundry:latest"))
 protein.setdefault("esmfold_image", os.environ.get("HERMES_PROTEIN_ESMFOLD_IMAGE", "hermes-esmfold:latest"))
-protein.setdefault("alphafold2_image", os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:latest"))
+protein.setdefault("alphafold2_image", os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:1.6.1-cuda12"))
 protein.setdefault("alphafold2_command", os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_COMMAND", "colabfold_batch"))
 protein.setdefault("workspace_root", os.environ.get("HERMES_PROTEIN_WORKSPACE_ROOT", str(home / "protein-design")))
 protein.setdefault("default_timeout_seconds", int(os.environ.get("HERMES_PROTEIN_DEFAULT_TIMEOUT_SECONDS", "7200")))

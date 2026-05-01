@@ -1701,7 +1701,7 @@ def _configure_provider(provider: dict, config: dict):
             )
             protein_cfg.setdefault(
                 "alphafold2_image",
-                os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:latest"),
+                os.environ.get("HERMES_PROTEIN_ALPHAFOLD2_IMAGE", "ghcr.io/sokrypton/colabfold:1.6.1-cuda12"),
             )
             protein_cfg.setdefault(
                 "alphafold2_command",
