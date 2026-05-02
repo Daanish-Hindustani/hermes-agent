@@ -58,8 +58,7 @@ def optimize_skill(
         diagnostics = []
         for result in scored["scenarios"]:
             diagnostics.extend(result.diagnostics)
-        return {
-            "score": scored["score"],
+        return scored["score"], {
             "feedback": "\n".join(diagnostics) if diagnostics else "All binder-design checks passed.",
             "details": scored,
         }
