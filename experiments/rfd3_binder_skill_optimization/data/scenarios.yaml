@@ -106,6 +106,146 @@ scenarios:
       scale_up: true
       avoid_validation_claims: true
 
+  - id: multi_chain_target_context
+    name: Multi-chain target context
+    prompt: >
+      Design a binder against a heterodimer interface. The prepared target
+      structure contains chain A residues 1-140 and chain B residues 3-95, and
+      both chains define the binding surface. Use only the relevant context.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-140"
+            continuous_ranges: ["1-140"]
+            gaps: []
+          B:
+            range: "3-95"
+            continuous_ranges: ["3-95"]
+            gaps: []
+          C:
+            range: "1-300"
+            continuous_ranges: ["1-300"]
+            gaps: []
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/multichain
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design]
+      inspect_before_rfd3: true
+      binder_contig_pattern: true
+      required_contig_segments: [A1-140, B3-95]
+      forbidden_contigs: [C1-300]
+      debug_first: true
+      avoid_validation_claims: true
+
+  - id: ligand_context_binder
+    name: Ligand/cofactor target context
+    prompt: >
+      Design a binder against the cofactor-facing site in target.cif. The target
+      has chain A residues 10-180 and a bound HEM cofactor at A501 that defines
+      the intended surface. Keep the relevant target context and use hotspots
+      A64 and A97.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "10-180"
+            continuous_ranges: ["10-180"]
+            gaps: []
+        hetatm_comp_ids: [HEM]
+        hetatm_records:
+          - comp_id: HEM
+            chain: A
+            residue_number: 501
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/ligand_context
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design]
+      inspect_before_rfd3: true
+      binder_contig_pattern: true
+      required_contig_segments: [A10-180]
+      hotspots_separate: true
+      debug_first: true
+      avoid_validation_claims: true
+
+  - id: invalid_input_recovery
+    name: Invalid input recovery
+    prompt: >
+      An RFD3 binder debug run failed validation because the contig referenced
+      missing residues A121-A124. Decide the next move for the campaign.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-160"
+            continuous_ranges: ["1-120", "125-160"]
+            gaps: [121, 122, 123, 124]
+      rfd3_design:
+        success: false
+        error: "contig references missing residues A121-A124"
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: []
+      forbidden_tools: [rfd3_design]
+      failure_mode_guidance: invalid_inputs
+      avoid_validation_claims: true
+
+  - id: no_interface_iteration
+    name: No plausible interface iteration
+    prompt: >
+      The last RFD3 binder round generated complete backbones, but none placed
+      the binder on the intended epitope. Suggest the next RFD3 round without
+      rerunning identical settings.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-220"
+            continuous_ranges: ["1-220"]
+            gaps: []
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/no_interface_next
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [rfd3_design]
+      binder_contig_pattern: true
+      hotspots_separate: true
+      guide_scale_range: [1.0, 2.5]
+      failure_mode_guidance: no_interface
+      avoid_identical_rerun: true
+      avoid_validation_claims: true
+
+  - id: low_diversity_iteration
+    name: Low diversity iteration
+    prompt: >
+      The latest RFD3 binder round produced very repetitive backbones with low
+      diversity. Plan the next RFD3 settings change without changing everything
+      at once.
+    mock_tools:
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/low_diversity_next
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: []
+      failure_mode_guidance: low_diversity
+      avoid_identical_rerun: true
+      avoid_validation_claims: true
+
   - id: output_chain_remap
     name: RFD3 output chain remap before MPNN
     prompt: >
@@ -168,4 +308,3 @@ scenarios:
       required_tools: []
       forbidden_tools: [rfd3_design]
       avoid_validation_claims: true
-

@@ -39,6 +39,7 @@ def score_scenario(scenario: Scenario, transcript_value: Any) -> ScenarioResult:
     _check_inspect_before_rfd3(checks, transcript, bool(expectations.get("inspect_before_rfd3")))
     _check_rfd3_args(checks, transcript, expectations)
     _check_mpnn_args(checks, transcript, expectations)
+    _check_failure_mode_guidance(checks, transcript, expectations)
     _check_response_claims(checks, transcript, bool(expectations.get("avoid_validation_claims")))
 
     points = sum(check.points for check in checks)
@@ -112,10 +113,19 @@ def _check_rfd3_args(checks: list[CheckResult], transcript: Transcript, expectat
     forbidden_contigs = expectations.get("forbidden_contigs") or []
     for forbidden in forbidden_contigs:
         _add(checks, f"forbidden_contig:{forbidden}", forbidden not in contig, f"Contig used forbidden range: {forbidden}")
+    required_segments = expectations.get("required_contig_segments") or []
+    for segment in required_segments:
+        _add(checks, f"required_contig_segment:{segment}", str(segment) in contig, f"Contig must include target context segment: {segment}")
 
     if expectations.get("hotspots_separate"):
         hotspots = rfd3.args.get("hotspot_residues")
         _add(checks, "hotspots_separate", bool(hotspots), "Hotspots must be passed via hotspot_residues.")
+
+    guide_range = expectations.get("guide_scale_range")
+    if guide_range:
+        guide_scale = _to_float(rfd3.args.get("guide_scale", 1.5))
+        low, high = float(guide_range[0]), float(guide_range[1])
+        _add(checks, "guide_scale_range", guide_scale is not None and low <= guide_scale <= high, f"guide_scale should stay in {low}-{high} for binder iteration.")
 
     debug = expectations.get("debug_first")
     if debug:
@@ -153,6 +163,25 @@ def _check_response_claims(checks: list[CheckResult], transcript: Transcript, re
     _add(checks, "avoid_validation_claims", passed, "Final response overclaimed computational binder validation.")
 
 
+def _check_failure_mode_guidance(checks: list[CheckResult], transcript: Transcript, expectations: dict[str, Any]) -> None:
+    mode = expectations.get("failure_mode_guidance")
+    if not mode and not expectations.get("avoid_identical_rerun"):
+        return
+    text = transcript.final_response.lower()
+    if expectations.get("avoid_identical_rerun"):
+        rerun_bad = "same settings" in text or "identical settings" in text or "rerun identical" in text
+        _add(checks, "avoid_identical_rerun", not rerun_bad, "Do not recommend rerunning identical RFD3 settings.")
+    if mode == "invalid_inputs":
+        passed = any(phrase in text for phrase in ("chain id", "chain ids", "residue numbering", "contig", "target_pdb_path", "target path"))
+        _add(checks, "invalid_input_guidance", passed, "Invalid inputs should trigger chain/residue/contig/target path checks, not parameter tuning.")
+    elif mode == "no_interface":
+        passed = any(phrase in text for phrase in ("hotspot", "target context", "longer binder", "guide_scale", "epitope"))
+        _add(checks, "no_interface_guidance", passed, "No-interface failures should revise hotspots, target context, binder length, or guide_scale.")
+    elif mode == "low_diversity":
+        passed = any(phrase in text for phrase in ("broaden", "binder length", "alternative hotspot", "hotspot subset", "diversity"))
+        _add(checks, "low_diversity_guidance", passed, "Low diversity should broaden binder length or use alternative hotspot subsets.")
+
+
 def _first_call(calls: list[ToolCall], name: str) -> ToolCall | None:
     return next((call for call in calls if call.name == name), None)
 
@@ -160,6 +189,13 @@ def _first_call(calls: list[ToolCall], name: str) -> ToolCall | None:
 def _to_int(value: Any) -> int | None:
     try:
         return int(value)
+    except Exception:
+        return None
+
+
+def _to_float(value: Any) -> float | None:
+    try:
+        return float(value)
     except Exception:
         return None
 
@@ -174,4 +210,3 @@ def _add(checks: list[CheckResult], name: str, passed: bool, failure_message: st
             message="ok" if passed else failure_message,
         )
     )
-

@@ -80,6 +80,52 @@ def test_score_scenario_accepts_correct_binder_transcript():
     assert result.diagnostics == []
 
 
+def test_score_scenario_accepts_multi_chain_context():
+    scenario = next(item for item in load_scenarios(DATASET) if item.id == "multi_chain_target_context")
+    transcript = Transcript(
+        tool_calls=[
+            ToolCall("inspect_structure", {"structure_path": "target.cif"}),
+            ToolCall(
+                "rfd3_design",
+                {
+                    "mode": "binder",
+                    "contig": "70-110,/0,A1-140,/0,B3-95",
+                    "target_pdb_path": "target.cif",
+                    "num_designs": 2,
+                    "num_timesteps": 25,
+                },
+            ),
+        ],
+        final_response="Computational binder candidates only.",
+    )
+
+    result = score_scenario(scenario, transcript)
+
+    assert result.score == result.max_score
+    assert result.diagnostics == []
+
+
+def test_score_scenario_checks_failure_mode_guidance():
+    scenarios = {item.id: item for item in load_scenarios(DATASET)}
+    invalid = score_scenario(
+        scenarios["invalid_input_recovery"],
+        Transcript(
+            tool_calls=[],
+            final_response="Re-check chain IDs, residue numbering, contig format, and target_pdb_path before tuning parameters.",
+        ),
+    )
+    diversity = score_scenario(
+        scenarios["low_diversity_iteration"],
+        Transcript(
+            tool_calls=[],
+            final_response="Broaden the binder length range and try alternative hotspot subsets rather than rerunning identical settings.",
+        ),
+    )
+
+    assert invalid.diagnostics == []
+    assert diversity.diagnostics == []
+
+
 def test_score_scenario_flags_bad_binder_transcript():
     scenario = next(item for item in load_scenarios(DATASET) if item.id == "gapped_target_contig")
     transcript = Transcript(
