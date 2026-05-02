@@ -7,6 +7,7 @@ import pytest
 
 from experiments.rfd3_binder_skill_optimization.dataset import load_scenarios
 from experiments.rfd3_binder_skill_optimization.gepa_adapter import optimize_skill
+from experiments.rfd3_binder_skill_optimization.hermes_runner import _simulated_tool_schemas
 from experiments.rfd3_binder_skill_optimization.reporting import write_json_report, write_markdown_report
 from experiments.rfd3_binder_skill_optimization.scoring import score_scenario
 from experiments.rfd3_binder_skill_optimization.transcript import Transcript, ToolCall
@@ -24,6 +25,15 @@ def test_load_scenarios_are_binder_only():
         assert {"free_generation", "motif_scaffold", "partial_diffusion"} <= set(
             scenario.expectations["forbidden_modes"]
         )
+
+
+def test_simulated_tool_surface_contains_protein_design_tools_only():
+    names = {tool["function"]["name"] for tool in _simulated_tool_schemas()}
+
+    assert "inspect_structure" in names
+    assert "rfd3_design" in names
+    assert "protein_mpnn_design" in names
+    assert "skill_view" not in names
 
 
 def test_load_scenarios_rejects_non_binder_modes(tmp_path):

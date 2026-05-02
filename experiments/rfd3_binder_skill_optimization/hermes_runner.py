@@ -52,6 +52,8 @@ def run_hermes_scenario(
             quiet_mode=True,
             max_iterations=max_iterations,
         )
+        agent.tools = _simulated_tool_schemas()
+        agent.valid_tool_names = {tool["function"]["name"] for tool in agent.tools}
         result = agent.run_conversation(scenario.prompt, system_message=system_message)
 
     return Transcript(
@@ -86,6 +88,30 @@ def load_text(path: str | Path) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
+def _simulated_tool_schemas() -> list[dict[str, Any]]:
+    import importlib.util
+
+    schemas_path = Path(__file__).resolve().parents[2] / "plugins" / "protein-design" / "schemas.py"
+    spec = importlib.util.spec_from_file_location("_rfd3_eval_protein_schemas", schemas_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not load protein-design schemas from {schemas_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return [
+        {"type": "function", "function": schema}
+        for schema in (
+            module.PUBMED_SEARCH_SCHEMA,
+            module.UNIPROT_SEARCH_SCHEMA,
+            module.RCSB_SEARCH_SCHEMA,
+            module.INSPECT_STRUCTURE_SCHEMA,
+            module.RFD3_DESIGN_SCHEMA,
+            module.PROTEIN_MPNN_DESIGN_SCHEMA,
+            module.ESMFOLD_PREDICT_SCHEMA,
+            module.ALPHAFOLD2_MULTIMER_PREDICT_SCHEMA,
+        )
+    ]
+
+
 def _system_message(skill_text: str, reference_skill_text: str) -> str:
     return (
         "You are evaluating binder-only RFD3 skill behavior. Follow the candidate "
@@ -109,4 +135,3 @@ def _patch_protein_tools(simulator: SimulatedProteinTools):
 
     with patch("run_agent.handle_function_call", dispatch):
         yield
-
