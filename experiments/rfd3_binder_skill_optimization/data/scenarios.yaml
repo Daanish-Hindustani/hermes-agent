@@ -1,0 +1,171 @@
+version: 1
+description: Binder-only evaluation scenarios for optimizing rfd3-design/SKILL.md.
+
+scenarios:
+  - id: basic_binder_setup
+    name: Basic binder setup
+    prompt: >
+      Design a first-pass binder against target.pdb chain A residues 1-120.
+      Use RFD3 only after checking the target structure.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-120"
+            continuous_ranges: ["1-120"]
+            gaps: []
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/basic
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design]
+      inspect_before_rfd3: true
+      binder_contig_pattern: true
+      debug_first: true
+      avoid_validation_claims: true
+
+  - id: gapped_target_contig
+    name: Gapped target contig
+    prompt: >
+      Build an RFD3 binder setup for target.cif chain A. The intended target
+      is the visible domain, but do not assume paper residue numbering is
+      continuous.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-160"
+            continuous_ranges: ["1-80", "85-160"]
+            gaps: [81, 82, 83, 84]
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/gapped
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design]
+      inspect_before_rfd3: true
+      binder_contig_pattern: true
+      forbidden_contigs: ["A1-160"]
+      debug_first: true
+      avoid_validation_claims: true
+
+  - id: hotspot_binder
+    name: Hotspot-guided binder
+    prompt: >
+      Design a binder to chain A residues 1-200 that targets epitope residues
+      A45, A47, and A90. Keep hotspots out of the contig string.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-200"
+            continuous_ranges: ["1-200"]
+            gaps: []
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/hotspots
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design]
+      inspect_before_rfd3: true
+      binder_contig_pattern: true
+      hotspots_separate: true
+      debug_first: true
+      avoid_validation_claims: true
+
+  - id: scale_up_after_debug
+    name: Scale after validated debug
+    prompt: >
+      The debug RFD3 binder input already passed validation for chain A1-220
+      and hotspots A55,A88. Run the first real exploration round.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-220"
+            continuous_ranges: ["1-220"]
+            gaps: []
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/scale
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design]
+      inspect_before_rfd3: true
+      binder_contig_pattern: true
+      hotspots_separate: true
+      scale_up: true
+      avoid_validation_claims: true
+
+  - id: output_chain_remap
+    name: RFD3 output chain remap before MPNN
+    prompt: >
+      RFD3 generated binder-target outputs. Continue to ProteinMPNN, but first
+      verify which generated chain is the binder because RFD3 may remap chains.
+    mock_tools:
+      inspect_structure:
+        - success: true
+          chains:
+            A:
+              range: "1-180"
+              continuous_ranges: ["1-180"]
+              gaps: []
+        - success: true
+          chains:
+            A:
+              range: "1-88"
+              continuous_ranges: ["1-88"]
+              gaps: []
+            B:
+              range: "1-180"
+              continuous_ranges: ["1-180"]
+              gaps: []
+          metadata:
+            diffused_index_map:
+              binder_chain: A
+      rfd3_design:
+        success: true
+        output_dir: /mock/rfd3/remap
+        generated: [/mock/rfd3/remap/model_0.cif.gz]
+      protein_mpnn_design:
+        success: true
+        output_dir: /mock/mpnn/remap
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: [inspect_structure, rfd3_design, protein_mpnn_design]
+      inspect_before_rfd3: true
+      inspect_before_mpnn: true
+      binder_contig_pattern: true
+      debug_first: true
+      avoid_validation_claims: true
+
+  - id: safe_reporting
+    name: Safe computational reporting
+    prompt: >
+      Summarize this binder campaign result. It has RFD3, ProteinMPNN, and
+      ESMFold outputs, but no wet-lab data.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A:
+            range: "1-150"
+            continuous_ranges: ["1-150"]
+            gaps: []
+    expectations:
+      mode: binder
+      forbidden_modes: [free_generation, motif_scaffold, partial_diffusion]
+      required_tools: []
+      forbidden_tools: [rfd3_design]
+      avoid_validation_claims: true
+

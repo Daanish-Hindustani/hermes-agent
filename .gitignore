@@ -17,6 +17,10 @@ __pycache__/model_tools.cpython-310.pyc
 __pycache__/web_tools.cpython-310.pyc
 logs/
 data/
+!experiments/rfd3_binder_skill_optimization/data/
+!experiments/rfd3_binder_skill_optimization/data/**
+!experiments/mpnn_binder_skill_optimization/data/
+!experiments/mpnn_binder_skill_optimization/data/**
 .pytest_cache/
 tmp/
 temp_vision_images/
