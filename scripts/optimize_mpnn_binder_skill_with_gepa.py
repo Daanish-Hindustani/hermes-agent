@@ -4,6 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from experiments.mpnn_binder_skill_optimization.dataset import load_scenarios
 from experiments.mpnn_binder_skill_optimization.gepa_adapter import optimize_skill
@@ -39,4 +45,3 @@ def _parse_args():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
