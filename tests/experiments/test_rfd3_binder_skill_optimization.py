@@ -136,17 +136,19 @@ def test_gepa_adapter_writes_candidate_with_fake_optimizer(tmp_path, monkeypatch
         def __init__(self, engine):
             self.engine = engine
 
+    logs = []
+
     def fake_optimize_anything(seed_candidate, evaluator, dataset, objective, background, config):
         assert "binder design only" in objective
         assert config.engine.max_metric_calls == 24
-        score, side_info = evaluator(seed_candidate + "\n\nOptimized binder guidance.", dataset[0])
+        score = evaluator(seed_candidate + "\n\nOptimized binder guidance.", dataset[0])
         assert score >= 0
-        assert "feedback" in side_info
         return {"best_candidate": seed_candidate + "\n\nOptimized binder guidance."}
 
     gepa_mod.optimize_anything = fake_optimize_anything
     gepa_mod.EngineConfig = FakeEngineConfig
     gepa_mod.GEPAConfig = FakeGEPAConfig
+    gepa_mod.log = logs.append
     gepa_pkg.optimize_anything = gepa_mod
     monkeypatch.setitem(sys.modules, "gepa", gepa_pkg)
     monkeypatch.setitem(sys.modules, "gepa.optimize_anything", gepa_mod)

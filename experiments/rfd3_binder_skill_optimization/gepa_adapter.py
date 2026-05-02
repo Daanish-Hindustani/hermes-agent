@@ -58,10 +58,11 @@ def optimize_skill(
         diagnostics = []
         for result in scored["scenarios"]:
             diagnostics.extend(result.diagnostics)
-        return scored["score"], {
-            "feedback": "\n".join(diagnostics) if diagnostics else "All binder-design checks passed.",
-            "details": scored,
-        }
+        if diagnostics:
+            oa.log("Binder-design failures:\n" + "\n".join(f"- {item}" for item in diagnostics))
+        else:
+            oa.log("All binder-design checks passed.")
+        return float(scored["score"])
 
     result = oa.optimize_anything(
         seed_candidate=seed_skill,
