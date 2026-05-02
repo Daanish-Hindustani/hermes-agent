@@ -141,6 +141,7 @@ def test_gepa_adapter_writes_candidate_with_fake_optimizer(tmp_path, monkeypatch
     def fake_optimize_anything(seed_candidate, evaluator, dataset, objective, background, config):
         assert "binder design only" in objective
         assert config.engine.max_metric_calls == 24
+        assert config.reflection.reflection_lm == "openai/gpt-5.1"
         score = evaluator(seed_candidate + "\n\nOptimized binder guidance.", dataset[0])
         assert score >= 0
         return {"best_candidate": seed_candidate + "\n\nOptimized binder guidance."}
@@ -148,6 +149,7 @@ def test_gepa_adapter_writes_candidate_with_fake_optimizer(tmp_path, monkeypatch
     gepa_mod.optimize_anything = fake_optimize_anything
     gepa_mod.EngineConfig = FakeEngineConfig
     gepa_mod.GEPAConfig = FakeGEPAConfig
+    gepa_mod.ReflectionConfig = lambda reflection_lm: type("FakeReflectionConfig", (), {"reflection_lm": reflection_lm})()
     gepa_mod.log = logs.append
     gepa_pkg.optimize_anything = gepa_mod
     monkeypatch.setitem(sys.modules, "gepa", gepa_pkg)

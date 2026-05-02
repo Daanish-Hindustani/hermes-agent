@@ -30,6 +30,7 @@ def optimize_skill(
     provider: str | None = None,
     api_mode: str | None = None,
     max_metric_calls: int = 24,
+    reflection_lm: str | None = None,
 ) -> dict[str, Any]:
     """Run GEPA and persist the best candidate skill."""
 
@@ -70,7 +71,12 @@ def optimize_skill(
         dataset=[{"scenario_id": scenario.id} for scenario in scenarios],
         objective=OBJECTIVE,
         background=reference_skill,
-        config=oa.GEPAConfig(engine=oa.EngineConfig(max_metric_calls=max_metric_calls)),
+        config=oa.GEPAConfig(
+            engine=oa.EngineConfig(max_metric_calls=max_metric_calls),
+            reflection=oa.ReflectionConfig(
+                reflection_lm=reflection_lm or _default_reflection_lm(provider, model),
+            ),
+        ),
     )
     candidate_text = _extract_candidate_text(result)
     output_path = _write_candidate(out_dir, candidate_text)
@@ -105,3 +111,13 @@ def _write_candidate(out_dir: str | Path, candidate_text: str) -> Path:
     path = target / f"rfd3-design.binder-optimized.{stamp}.SKILL.md"
     path.write_text(candidate_text, encoding="utf-8")
     return path
+
+
+def _default_reflection_lm(provider: str | None, model: str) -> str:
+    if provider == "google" and model:
+        return f"gemini/{model}"
+    if provider == "anthropic" and model:
+        return f"anthropic/{model}"
+    if provider == "openai" and model:
+        return f"openai/{model}"
+    return "openai/gpt-5.1"

@@ -28,6 +28,7 @@ def main() -> int:
         provider=args.provider,
         api_mode=args.api_mode,
         max_metric_calls=args.max_metric_calls,
+        reflection_lm=args.reflection_lm,
     )
     print(f"Optimized candidate written to {result['candidate_path']}")
     return 0
@@ -42,6 +43,13 @@ def _parse_args():
     parser.add_argument("--model", default="")
     parser.add_argument("--provider")
     parser.add_argument("--api-mode")
+    parser.add_argument(
+        "--reflection-lm",
+        help=(
+            "LiteLLM model id for GEPA reflection/proposal, e.g. "
+            "gemini/gemini-2.5-flash. Defaults from --provider/--model when possible."
+        ),
+    )
     parser.add_argument(
         "--max-metric-calls",
         type=int,
