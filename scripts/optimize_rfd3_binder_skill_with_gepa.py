@@ -27,6 +27,7 @@ def main() -> int:
         model=args.model,
         provider=args.provider,
         api_mode=args.api_mode,
+        max_metric_calls=args.max_metric_calls,
     )
     print(f"Optimized candidate written to {result['candidate_path']}")
     return 0
@@ -41,6 +42,12 @@ def _parse_args():
     parser.add_argument("--model", default="")
     parser.add_argument("--provider")
     parser.add_argument("--api-mode")
+    parser.add_argument(
+        "--max-metric-calls",
+        type=int,
+        default=24,
+        help="GEPA optimization budget. Each metric call may run one Hermes evaluation.",
+    )
     return parser.parse_args()
 
 

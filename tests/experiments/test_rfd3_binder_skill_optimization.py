@@ -128,13 +128,24 @@ def test_gepa_adapter_writes_candidate_with_fake_optimizer(tmp_path, monkeypatch
     gepa_pkg = types.ModuleType("gepa")
     gepa_mod = types.ModuleType("gepa.optimize_anything")
 
-    def fake_optimize_anything(seed_candidate, evaluator, dataset, objective, background):
+    class FakeEngineConfig:
+        def __init__(self, max_metric_calls):
+            self.max_metric_calls = max_metric_calls
+
+    class FakeGEPAConfig:
+        def __init__(self, engine):
+            self.engine = engine
+
+    def fake_optimize_anything(seed_candidate, evaluator, dataset, objective, background, config):
         assert "binder design only" in objective
+        assert config.engine.max_metric_calls == 24
         score = evaluator(seed_candidate + "\n\nOptimized binder guidance.", dataset[0])
         assert score["score"] >= 0
         return {"best_candidate": seed_candidate + "\n\nOptimized binder guidance."}
 
     gepa_mod.optimize_anything = fake_optimize_anything
+    gepa_mod.EngineConfig = FakeEngineConfig
+    gepa_mod.GEPAConfig = FakeGEPAConfig
     gepa_pkg.optimize_anything = gepa_mod
     monkeypatch.setitem(sys.modules, "gepa", gepa_pkg)
     monkeypatch.setitem(sys.modules, "gepa.optimize_anything", gepa_mod)
@@ -215,4 +226,3 @@ def test_compare_script_does_not_overwrite_skill(tmp_path, monkeypatch):
     assert compare_script.main() == 0
     assert baseline.read_text(encoding="utf-8") == before
     assert (tmp_path / "out" / "comparison_report.json").exists()
-

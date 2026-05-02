@@ -29,6 +29,7 @@ def optimize_skill(
     model: str = "",
     provider: str | None = None,
     api_mode: str | None = None,
+    max_metric_calls: int = 24,
 ) -> dict[str, Any]:
     """Run GEPA and persist the best candidate skill."""
 
@@ -61,6 +62,7 @@ def optimize_skill(
         dataset=[{"scenario_id": scenario.id} for scenario in scenarios],
         objective=OBJECTIVE,
         background=reference_skill,
+        config=oa.GEPAConfig(engine=oa.EngineConfig(max_metric_calls=max_metric_calls)),
     )
     candidate_text = _extract_candidate_text(result)
     output_path = _write_candidate(out_dir, candidate_text)
@@ -95,4 +97,3 @@ def _write_candidate(out_dir: str | Path, candidate_text: str) -> Path:
     path = target / f"rfd3-design.binder-optimized.{stamp}.SKILL.md"
     path.write_text(candidate_text, encoding="utf-8")
     return path
-
