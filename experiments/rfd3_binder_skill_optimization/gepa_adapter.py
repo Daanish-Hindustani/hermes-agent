@@ -33,6 +33,14 @@ def optimize_skill(
 ) -> dict[str, Any]:
     """Run GEPA and persist the best candidate skill."""
 
+    try:
+        import litellm  # noqa: F401
+    except ImportError as exc:
+        raise RuntimeError(
+            "GEPA optimize_anything requires litellm for its reflection model. "
+            "Install project dependencies again, or run: pip install 'litellm>=1.79.0,<2'"
+        ) from exc
+
     import gepa.optimize_anything as oa
 
     def evaluator(candidate: Any, data_inst: Any = None, **_: Any) -> dict[str, Any]:
