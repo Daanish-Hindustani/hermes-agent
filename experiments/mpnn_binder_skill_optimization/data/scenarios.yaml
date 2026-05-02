@@ -1,0 +1,194 @@
+version: 1
+description: Binder-only evaluation scenarios for optimizing protein-mpnn-design/SKILL.md.
+
+scenarios:
+  - id: basic_rfd3_backbone_to_mpnn
+    name: Basic RFD3 backbone to ProteinMPNN
+    prompt: >
+      RFD3 produced /mock/rfd3/basic/model_0.cif.gz for a binder-target design.
+      The generated binder is chain A and the target is chain B. Design a first
+      ProteinMPNN sequence batch and plan foldability triage.
+    mock_tools:
+      inspect_structure:
+        success: true
+        chains:
+          A: {range: "1-92", continuous_ranges: ["1-92"], gaps: []}
+          B: {range: "1-180", continuous_ranges: ["1-180"], gaps: []}
+        metadata:
+          binder_chain: A
+          target_chain: B
+      protein_mpnn_design:
+        success: true
+        output_dir: /mock/mpnn/basic
+      esmfold_predict:
+        success: true
+        output_dir: /mock/esm/basic
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: [protein_mpnn_design]
+      requires_mpnn_call: true
+      requires_structure_input: true
+      inspect_before_mpnn: true
+      binder_chain: A
+      target_chain: B
+      expected_model_type: protein_mpnn
+      initial_temperature: true
+      requires_esmfold_followup: true
+      avoid_validation_claims: true
+
+  - id: chain_remap_binder_not_target
+    name: Chain remap binder is not target
+    prompt: >
+      RFD3 remapped the generated output. Metadata says binder_chain=A and
+      target_chain=B for /mock/rfd3/remap/model_0.cif.gz. Run sequence design
+      without mutating the target.
+    mock_tools:
+      inspect_structure:
+        success: true
+        metadata:
+          diffused_index_map:
+            binder_chain: A
+            target_chain: B
+        chains:
+          A: {range: "1-88", continuous_ranges: ["1-88"], gaps: []}
+          B: {range: "1-210", continuous_ranges: ["1-210"], gaps: []}
+      protein_mpnn_design:
+        success: true
+        output_dir: /mock/mpnn/remap
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: [inspect_structure, protein_mpnn_design]
+      requires_mpnn_call: true
+      requires_structure_input: true
+      inspect_before_mpnn: true
+      binder_chain: A
+      target_chain: B
+      expected_model_type: protein_mpnn
+      initial_temperature: true
+      avoid_validation_claims: true
+
+  - id: batch_backbone_design
+    name: Batch backbone design
+    prompt: >
+      RFD3 produced three promising binder-target backbones:
+      /mock/rfd3/batch/model_0.cif.gz, /mock/rfd3/batch/model_1.cif.gz, and
+      /mock/rfd3/batch/model_2.cif.gz. Design sequences for the batch.
+    mock_tools:
+      protein_mpnn_design:
+        success: true
+        output_dirs: [/mock/mpnn/batch_0, /mock/mpnn/batch_1, /mock/mpnn/batch_2]
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: [protein_mpnn_design]
+      requires_mpnn_call: true
+      requires_structure_input: true
+      batch_backbones: true
+      binder_chain: A
+      expected_model_type: protein_mpnn
+      initial_temperature: true
+      avoid_validation_claims: true
+
+  - id: ligand_context
+    name: Ligand context uses LigandMPNN
+    prompt: >
+      The binder design keeps a metal ion and cofactor in the target context.
+      Run ProteinMPNN sequence design on /mock/rfd3/ligand/model_0.cif.gz while
+      preserving ligand-aware atom context.
+    mock_tools:
+      inspect_structure:
+        success: true
+        hetatm_comp_ids: [ZN, NAD]
+        chains:
+          A: {range: "1-95", continuous_ranges: ["1-95"], gaps: []}
+          B: {range: "1-175", continuous_ranges: ["1-175"], gaps: []}
+      protein_mpnn_design:
+        success: true
+        output_dir: /mock/mpnn/ligand
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: [inspect_structure, protein_mpnn_design]
+      requires_mpnn_call: true
+      requires_structure_input: true
+      inspect_before_mpnn: true
+      binder_chain: A
+      target_chain: B
+      expected_model_type: ligand_mpnn
+      initial_temperature: true
+      avoid_validation_claims: true
+
+  - id: fixed_interface_positions
+    name: Fixed binder interface residues
+    prompt: >
+      Design sequences for /mock/rfd3/fixed/model_0.cif.gz, but keep binder
+      residues A12, A15, and A18 fixed because they are required interface
+      contacts.
+    mock_tools:
+      protein_mpnn_design:
+        success: true
+        output_dir: /mock/mpnn/fixed
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: [protein_mpnn_design]
+      requires_mpnn_call: true
+      requires_structure_input: true
+      binder_chain: A
+      expected_model_type: protein_mpnn
+      initial_temperature: true
+      requires_fixed_positions: true
+      avoid_validation_claims: true
+
+  - id: diversity_temperature_sweep
+    name: Diversity temperature sweep
+    prompt: >
+      The first ProteinMPNN pass at temperature 0.1 folded well but produced
+      nearly identical binder sequences. Run a diversity follow-up batch.
+    mock_tools:
+      protein_mpnn_design:
+        success: true
+        output_dir: /mock/mpnn/diversity
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: [protein_mpnn_design]
+      requires_mpnn_call: true
+      requires_structure_input: true
+      binder_chain: A
+      expected_model_type: protein_mpnn
+      diversity_temperature: true
+      avoid_validation_claims: true
+
+  - id: fold_collapse_after_mpnn
+    name: Fold collapse response
+    prompt: >
+      ProteinMPNN generated binder sequences, but ESMFold shows low confidence
+      and collapsed binder cores. Decide the next sequence-design move.
+    mock_tools:
+      esmfold_predict:
+        success: true
+        mean_plddt: 48.0
+        notes: collapsed binder core
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: []
+      forbidden_tools: [protein_mpnn_design]
+      fold_collapse_response: true
+      avoid_validation_claims: true
+
+  - id: safe_reporting
+    name: Safe computational reporting
+    prompt: >
+      Summarize these ProteinMPNN sequence-design outputs for a binder campaign.
+      There is no wet-lab binding data.
+    mock_tools: {}
+    expectations:
+      target_skill: protein_mpnn_design
+      binder_only: true
+      required_tools: []
+      avoid_validation_claims: true
+
