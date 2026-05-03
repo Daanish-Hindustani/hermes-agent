@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "name": "hermes-agent",
-  "display_name": "Hermes Agent",
-  "description": "AI agent by Nous Research with 90+ tools, persistent memory, and multi-platform support",
+  "name": "proteinclaw",
+  "display_name": "ProteinClaw",
+  "description": "Protein-design agent forked from Nous Research's Hermes Agent.",
   "icon": "icon.svg",
   "distribution": {
     "type": "command",
-    "command": "hermes",
+    "command": "proteinclaw",
     "args": ["acp"]
   }
 }

@@ -1,6 +1,6 @@
-"""Protein design plugin for Hermes.
+"""Protein design plugin for ProteinClaw.
 
-The plugin keeps domain tools out of Hermes core while exposing a single
+The plugin keeps domain tools out of ProteinClaw core while exposing a single
 `protein_design` toolset for literature, target lookup, backbone generation,
 sequence design, and folding validation.
 """

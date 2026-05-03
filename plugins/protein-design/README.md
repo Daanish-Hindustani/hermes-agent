@@ -28,7 +28,7 @@ the tools into a mandatory pipeline.
 
 Minimum:
 
-- Hermes running from this checkout or an install that includes this plugin.
+- ProteinClaw running from this checkout or an install that includes this plugin.
 - Internet access for PubMed, UniProt, and RCSB.
 - Docker for RFD3, ProteinMPNN, and ESMFold.
 
@@ -46,7 +46,7 @@ Quick GPU check:
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
-If that fails, fix Docker/GPU access before debugging Hermes.
+If that fails, fix Docker/GPU access before debugging ProteinClaw.
 
 ## Lambda Cloud setup
 
@@ -64,13 +64,13 @@ scripts/setup_protein_design_lambda.sh
 
 The setup script:
 
-- Installs base Ubuntu packages needed by Hermes and Docker.
+- Installs base Ubuntu packages needed by ProteinClaw and Docker.
 - Checks host `nvidia-smi` before Docker setup and installs the recommended
   Ubuntu NVIDIA compute driver when it is missing or cannot communicate with
   the driver.
 - Installs Docker if it is missing.
 - Installs and configures NVIDIA Container Toolkit for `docker run --gpus all`.
-- Runs `./setup-hermes.sh` to create the repo-local Hermes virtualenv.
+- Runs `./setup-hermes.sh` to create the repo-local ProteinClaw virtualenv.
 - Enables the `protein-design` plugin in `~/.hermes/config.yaml`.
 - Writes default `protein_design` image/workspace config.
 - Pulls the Foundry image used by RFD3 and ProteinMPNN.
@@ -119,7 +119,7 @@ After reboot, rerun the setup script so Docker GPU checks and model image smoke
 tests can complete.
 
 After the script finishes, open a fresh shell if it added your user to the
-Docker group, then start Hermes:
+Docker group, then start ProteinClaw:
 
 ```bash
 cd ~/hermes-agent
@@ -128,7 +128,7 @@ hermes
 ```
 
 If you need API keys or model provider credentials, add them to
-`~/.hermes/.env` before launching Hermes. For PubMed throughput, set:
+`~/.hermes/.env` before launching ProteinClaw. For PubMed throughput, set:
 
 ```bash
 cat >> ~/.hermes/.env <<'EOF'
@@ -151,7 +151,7 @@ protein_design:
   default_timeout_seconds: 7200
 ```
 
-Lambda smoke tests from Hermes:
+Lambda smoke tests from ProteinClaw:
 
 ```text
 Use pubmed_search to find recent review papers on RFdiffusion protein binder design.
@@ -177,7 +177,7 @@ Enable the plugin:
 hermes plugins enable protein-design
 ```
 
-Then start a new Hermes session so plugin discovery and tool schemas are rebuilt.
+Then start a new ProteinClaw session so plugin discovery and tool schemas are rebuilt.
 
 Check that the toolset is visible:
 
@@ -185,12 +185,12 @@ Check that the toolset is visible:
 hermes tools
 ```
 
-If you run Hermes with explicit toolsets, include `protein_design`.
+If you run ProteinClaw with explicit toolsets, include `protein_design`.
 
-## Local compute setup from Hermes
+## Local compute setup from ProteinClaw
 
 During `hermes setup` or `hermes setup tools`, enable the `Protein Design`
-toolset. Hermes will ask whether to set up local Docker compute:
+toolset. ProteinClaw will ask whether to set up local Docker compute:
 
 - Choose `Local Docker compute` to pull Foundry for RFD3/ProteinMPNN and build
   the local ESMFold image.
@@ -213,7 +213,7 @@ scripts/setup_protein_design_local.sh --skip-smoke-tests
 scripts/setup_protein_design_local.sh --install-nvidia-driver
 ```
 
-This script does not install Hermes or Docker. It expects Docker to already be
+This script does not install ProteinClaw or Docker. It expects Docker to already be
 installed. For practical RFD3, ProteinMPNN, and ESMFold runs, Docker should have
 GPU access through NVIDIA Container Toolkit.
 
@@ -341,7 +341,7 @@ if your AF2/ColabFold image uses a different command or database layout.
 
 ## Binder campaign workflow
 
-The tools are independent. Hermes does not physically chain them together in
+The tools are independent. ProteinClaw does not physically chain them together in
 code. The agent chooses which tool to call next based on the active skill and
 the user's task. Binder design should be run as an iterative campaign, not as a
 single pass that declares a winner too early.
@@ -431,9 +431,9 @@ Rules:
 - Hotspots are passed separately as `hotspot_residues`.
 - The tool runs Foundry with `prevalidate_inputs=True`.
 
-## Manual smoke tests from Hermes
+## Manual smoke tests from ProteinClaw
 
-After enabling the plugin, ask Hermes:
+After enabling the plugin, ask ProteinClaw:
 
 ```text
 Use pubmed_search to find recent review papers on RFdiffusion protein binder design.
@@ -463,7 +463,7 @@ num_designs 1, contig "60-80", guide_scale 1.5, num_timesteps 25.
 ### Plugin tools do not appear
 
 - Run `hermes plugins enable protein-design`.
-- Start a new Hermes session.
+- Start a new ProteinClaw session.
 - If using explicit toolsets, include `protein_design`.
 
 ### Docker says no GPU
@@ -475,7 +475,7 @@ nvidia-smi
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
-If that fails, install/fix NVIDIA Container Toolkit. Hermes cannot repair a
+If that fails, install/fix NVIDIA Container Toolkit. ProteinClaw cannot repair a
 broken Docker GPU runtime.
 
 If Docker reports `libnvidia-ml.so.1: cannot open shared object file`, the host

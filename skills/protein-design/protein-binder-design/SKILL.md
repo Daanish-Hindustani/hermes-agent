@@ -2,7 +2,7 @@
 name: protein-binder-design
 description: "Use for iterative protein binder design campaigns: define the target and epitope, generate binder backbones with RFD3, design sequences with ProteinMPNN, fold/triage with ESMFold, rank candidates, and tune parameters across rounds."
 version: 1.1.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

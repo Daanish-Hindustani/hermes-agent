@@ -2,7 +2,7 @@
 name: pubmed-search
 description: Use pubmed_search for biomedical literature discovery with query expansion, abstract review, and PMID/DOI-grounded citations.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

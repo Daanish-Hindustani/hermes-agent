@@ -1,5 +1,5 @@
 """
-Interactive setup wizard for Hermes Agent.
+Interactive setup wizard for ProteinClaw.
 
 Modular wizard with independently-runnable sections:
   1. Model & Provider — choose your AI provider and model
@@ -7,6 +7,7 @@ Modular wizard with independently-runnable sections:
   3. Agent Settings — iterations, compression, session reset
   4. Messaging Platforms — connect Telegram, Discord, etc.
   5. Tools — configure TTS, web search, image generation, etc.
+  6. Protein Design — local Docker install for RFD3/MPNN/ESMFold/AF2
 
 Config files are stored in ~/.hermes/ for easy access.
 """
@@ -177,13 +178,13 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("⚕ Hermes Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ ProteinClaw Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
     print_info("The interactive wizard cannot be used here.")
     print()
-    print_info("Configure Hermes using environment variables or config commands:")
+    print_info("Configure ProteinClaw using environment variables or config commands:")
     print_info("  hermes config set model.provider custom")
     print_info("  hermes config set model.base_url http://localhost:8080/v1")
     print_info("  hermes config set model.default your-model-name")
@@ -826,7 +827,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
             print()
             print_header("Same-Provider Fallback & Rotation")
             print_info(
-                "Hermes can keep multiple credentials for one provider and rotate between"
+                "ProteinClaw can keep multiple credentials for one provider and rotate between"
             )
             print_info(
                 "them when a credential is exhausted or rate-limited. This preserves"
@@ -923,7 +924,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
         print()
         print_header("Vision & Image Analysis (optional)")
         print_info(f"Vision uses a separate multimodal backend. {_prov_display}")
-        print_info("doesn't currently provide one Hermes can auto-use for vision,")
+        print_info("doesn't currently provide one ProteinClaw can auto-use for vision,")
         print_info("so choose a backend now or skip and configure later.")
         print()
 
@@ -1273,7 +1274,7 @@ def setup_terminal_backend(config: dict):
     """Configure the terminal execution backend."""
     import platform as _platform
     print_header("Terminal Backend")
-    print_info("Choose where Hermes runs shell commands and code.")
+    print_info("Choose where ProteinClaw runs shell commands and code.")
     print_info("This affects tool execution, file access, and isolation.")
     print_info(f"   Guide: {_DOCS_BASE}/developer-guide/environments")
     print()
@@ -1324,7 +1325,7 @@ def setup_terminal_backend(config: dict):
         # CWD for messaging
         print()
         print_info("Working directory for messaging sessions:")
-        print_info("  When using Hermes via Telegram/Discord, this is where")
+        print_info("  When using ProteinClaw via Telegram/Discord, this is where")
         print_info(
             "  the agent starts. CLI mode always starts in the current directory."
         )
@@ -1888,7 +1889,7 @@ def _setup_telegram():
         print_info("⚠️  No allowlist set - anyone who finds your bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Hermes delivers cron job results,")
+    print_info("📬 Home Channel: where ProteinClaw delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   For Telegram DMs, this is your user ID (same as above).")
 
@@ -1952,7 +1953,7 @@ def _setup_discord():
         print_info("⚠️  No allowlist set - anyone in servers with your bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Hermes delivers cron job results,")
+    print_info("📬 Home Channel: where ProteinClaw delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   To get a channel ID: right-click a channel → Copy Channel ID")
     print_info("   (requires Developer Mode in Discord settings)")
@@ -2049,8 +2050,8 @@ def _write_slack_manifest_and_instruct():
         from hermes_constants import get_hermes_home
 
         manifest = _build_full_manifest(
-            bot_name="Hermes",
-            bot_description="Your Hermes agent on Slack",
+            bot_name="ProteinClaw",
+            bot_description="Your ProteinClaw agent on Slack",
         )
         target = Path(get_hermes_home()) / "slack-manifest.json"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -2067,7 +2068,7 @@ def _write_slack_manifest_and_instruct():
         )
         print_info(
             "   Re-run `hermes slack manifest --write` anytime to refresh after "
-            "Hermes adds new commands."
+            "ProteinClaw adds new commands."
         )
     except Exception as exc:  # pragma: no cover - best-effort UX helper
         print_warning(f"Couldn't write Slack manifest: {exc}")
@@ -2155,7 +2156,7 @@ def _setup_matrix():
             print_info("⚠️  No allowlist set - anyone who can message the bot can use it!")
 
         print()
-        print_info("📬 Home Room: where Hermes delivers cron job results and notifications.")
+        print_info("📬 Home Room: where ProteinClaw delivers cron job results and notifications.")
         print_info("   Room IDs look like !abc123:server (shown in Element room settings)")
         print_info("   You can also set this later by typing /set-home in a Matrix room.")
         home_room = prompt("Home room ID (leave empty to set later with /set-home)")
@@ -2198,7 +2199,7 @@ def _setup_mattermost():
         print_info("⚠️  No allowlist set - anyone who can message the bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Hermes delivers cron job results and notifications.")
+    print_info("📬 Home Channel: where ProteinClaw delivers cron job results and notifications.")
     print_info("   To get a channel ID: click channel name → View Info → copy the ID")
     print_info("   You can also set this later by typing /set-home in a Mattermost channel.")
     home_channel = prompt("Home channel ID (leave empty to set later with /set-home)")
@@ -2289,7 +2290,7 @@ def _setup_bluebubbles():
         if not prompt_yes_no("Reconfigure BlueBubbles?", False):
             return
 
-    print_info("Connects Hermes to iMessage via BlueBubbles — a free, open-source")
+    print_info("Connects ProteinClaw to iMessage via BlueBubbles — a free, open-source")
     print_info("macOS server that bridges iMessage to any device.")
     print_info("   Requires a Mac running BlueBubbles Server v1.0.0+")
     print_info("   Download: https://bluebubbles.app/")
@@ -2423,7 +2424,7 @@ _GATEWAY_PLATFORMS = [
 def setup_gateway(config: dict):
     """Configure messaging platform integrations."""
     print_header("Messaging Platforms")
-    print_info("Connect to messaging platforms to chat with Hermes from anywhere.")
+    print_info("Connect to messaging platforms to chat with ProteinClaw from anywhere.")
     print_info("Toggle with Space, confirm with Enter.")
     print()
 
@@ -2820,15 +2821,15 @@ def _load_openclaw_migration_module():
 
 # Item kinds that represent high-impact changes warranting explicit warnings.
 # Gateway tokens/channels can hijack messaging platforms from the old agent.
-# Config values may have different semantics between OpenClaw and Hermes.
+# Config values may have different semantics between OpenClaw and ProteinClaw.
 # Instruction/context files (.md) can contain incompatible setup procedures.
 _HIGH_IMPACT_KIND_KEYWORDS = {
-    "gateway": "⚠ Gateway/messaging — this will configure Hermes to use your OpenClaw messaging channels",
-    "telegram": "⚠ Telegram — this will point Hermes at your OpenClaw Telegram bot",
-    "slack": "⚠ Slack — this will point Hermes at your OpenClaw Slack workspace",
-    "discord": "⚠ Discord — this will point Hermes at your OpenClaw Discord bot",
-    "whatsapp": "⚠ WhatsApp — this will point Hermes at your OpenClaw WhatsApp connection",
-    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Hermes equivalents",
+    "gateway": "⚠ Gateway/messaging — this will configure ProteinClaw to use your OpenClaw messaging channels",
+    "telegram": "⚠ Telegram — this will point ProteinClaw at your OpenClaw Telegram bot",
+    "slack": "⚠ Slack — this will point ProteinClaw at your OpenClaw Slack workspace",
+    "discord": "⚠ Discord — this will point ProteinClaw at your OpenClaw Discord bot",
+    "whatsapp": "⚠ WhatsApp — this will point ProteinClaw at your OpenClaw WhatsApp connection",
+    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to ProteinClaw equivalents",
     "soul": "⚠ Instruction file — may contain OpenClaw-specific setup/restart procedures",
     "memory": "⚠ Memory/context file — may reference OpenClaw-specific infrastructure",
     "context": "⚠ Context file — may contain OpenClaw-specific instructions",
@@ -2872,7 +2873,7 @@ def _print_migration_preview(report: dict):
         print()
 
     if conflict_items:
-        print(color("  Would overwrite (conflicts with existing Hermes config):", Colors.YELLOW))
+        print(color("  Would overwrite (conflicts with existing ProteinClaw config):", Colors.YELLOW))
         for item in conflict_items:
             kind = item.get("kind", "unknown")
             reason = item.get("reason", "already exists")
@@ -2893,8 +2894,8 @@ def _print_migration_preview(report: dict):
         for warning in sorted(warnings_shown):
             print(color(f"    {warning}", Colors.YELLOW))
         print()
-        print(color("  Note: OpenClaw config values may have different semantics in Hermes.", Colors.YELLOW))
-        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ Hermes's yolo mode.", Colors.YELLOW))
+        print(color("  Note: OpenClaw config values may have different semantics in ProteinClaw.", Colors.YELLOW))
+        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ ProteinClaw's yolo mode.", Colors.YELLOW))
         print(color("  Instruction files (.md) from OpenClaw may contain incompatible procedures.", Colors.YELLOW))
         print()
 
@@ -2917,7 +2918,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
     print()
     print_header("OpenClaw Installation Detected")
     print_info(f"Found OpenClaw data at {openclaw_dir}")
-    print_info("Hermes can preview what would be imported before making any changes.")
+    print_info("ProteinClaw can preview what would be imported before making any changes.")
     print()
 
     if not prompt_yes_no("Would you like to see what can be imported?", default=True):
@@ -2987,7 +2988,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
         )
         return False
 
-    # Execute the migration — overwrite=False so existing Hermes configs are
+    # Execute the migration — overwrite=False so existing ProteinClaw configs are
     # preserved. The user saw the preview; conflicts are skipped by default.
     try:
         migrator = mod.Migrator(
@@ -2995,7 +2996,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
             target_root=hermes_home.resolve(),
             execute=True,
             workspace_target=None,
-            overwrite=False,  # preserve existing Hermes config
+            overwrite=False,  # preserve existing ProteinClaw config
             migrate_secrets=True,
             output_dir=None,
             selected_options=selected,
@@ -3018,7 +3019,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
     if migrated:
         print_success(f"Imported {migrated} item(s) from OpenClaw.")
     if conflicts:
-        print_info(f"Skipped {conflicts} item(s) that already exist in Hermes (use hermes claw migrate --overwrite to force).")
+        print_info(f"Skipped {conflicts} item(s) that already exist in ProteinClaw (use hermes claw migrate --overwrite to force).")
     if skipped:
         print_info(f"Skipped {skipped} item(s) (not found or unchanged).")
     if errors:
@@ -3033,6 +3034,98 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
 
 
 # =============================================================================
+# Protein Design (custom plugin)
+# =============================================================================
+
+PROTEIN_DESIGN_INSTALL_SCRIPT = PROJECT_ROOT / "scripts" / "setup_protein_design_lambda.sh"
+
+
+def setup_protein_design(config: dict):
+    """Configure the protein-design plugin.
+
+    Asks where the user wants to run RFdiffusion3, ProteinMPNN, ESMFold, and
+    AlphaFold2-Multimer. Cloud execution is reserved for a future managed
+    service and is intentionally disabled here. The local option runs the
+    bundled Lambda Cloud / Linux+GPU setup script which:
+
+      - Installs Docker + NVIDIA Container Toolkit if missing
+      - Pulls the Foundry image used by RFD3 / ProteinMPNN
+      - Builds the local ESMFold Docker image
+      - Pulls the configured AF2/ColabFold image
+      - Writes default ``protein_design`` image/workspace config
+
+    Idempotent: safe to re-run.
+    """
+    print_header("Protein Design")
+    print_info("Configure where to run RFdiffusion3, ProteinMPNN, ESMFold,")
+    print_info("and AlphaFold2-Multimer.")
+    print()
+
+    choice = prompt_choice(
+        "Where do you want to run protein-design tools?",
+        [
+            "Local (NVIDIA GPU + Docker required)",
+            "Cloud (Not available)",
+        ],
+        default=0,
+    )
+
+    if choice == 1:
+        print()
+        print_warning("Cloud execution is not available in this build.")
+        print_info("Re-run 'hermes setup protein_design' once cloud support ships.")
+        config.setdefault("protein_design", {})["backend"] = "none"
+        return
+
+    config.setdefault("protein_design", {})["backend"] = "local"
+
+    if not PROTEIN_DESIGN_INSTALL_SCRIPT.exists():
+        print()
+        print_error(f"Install script not found: {PROTEIN_DESIGN_INSTALL_SCRIPT}")
+        print_info("Expected at scripts/setup_protein_design_lambda.sh.")
+        print_info("Skipping local install. Configure manually per plugins/protein-design/README.md.")
+        return
+
+    if not prompt_yes_no(
+        "Run scripts/setup_protein_design_lambda.sh now to install Docker images and tools?",
+        default=True,
+    ):
+        print_info("Skipped. Run the script later:")
+        print_info(f"  bash {PROTEIN_DESIGN_INSTALL_SCRIPT}")
+        return
+
+    print()
+    print_info("Running protein-design installer (this may take a while — pulls multi-GB images)...")
+    print_info(f"  $ bash {PROTEIN_DESIGN_INSTALL_SCRIPT}")
+    print()
+
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["bash", str(PROTEIN_DESIGN_INSTALL_SCRIPT)],
+            cwd=str(PROJECT_ROOT),
+            check=False,
+        )
+    except KeyboardInterrupt:
+        print()
+        print_warning("Install interrupted.")
+        return
+    except FileNotFoundError as exc:
+        print_error(f"Failed to launch installer: {exc}")
+        return
+
+    if result.returncode == 0:
+        print()
+        print_success("Protein-design tools installed.")
+        print_info("Try: 'hermes' then ask the agent to run a protein_design tool.")
+    else:
+        print()
+        print_warning(f"Installer exited with code {result.returncode}.")
+        print_info("Inspect the output above. You can re-run with:")
+        print_info(f"  bash {PROTEIN_DESIGN_INSTALL_SCRIPT}")
+
+
+# =============================================================================
 # Main Wizard Orchestrator
 # =============================================================================
 
@@ -3043,6 +3136,7 @@ SETUP_SECTIONS = [
     ("gateway", "Messaging Platforms (Gateway)", setup_gateway),
     ("tools", "Tools", setup_tools),
     ("agent", "Agent Settings", setup_agent_settings),
+    ("protein_design", "Protein Design", setup_protein_design),
 ]
 
 
@@ -3098,7 +3192,7 @@ def run_setup_wizard(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ⚕ Hermes Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ⚕ ProteinClaw Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",
@@ -3134,7 +3228,7 @@ def run_setup_wizard(args):
     )
     print(
         color(
-            "│             ⚕ Hermes Agent Setup Wizard                │", Colors.MAGENTA
+            "│             ⚕ ProteinClaw Setup Wizard                │", Colors.MAGENTA
         )
     )
     print(
@@ -3145,7 +3239,7 @@ def run_setup_wizard(args):
     )
     print(
         color(
-            "│  Let's configure your Hermes Agent installation.       │", Colors.MAGENTA
+            "│  Let's configure your ProteinClaw installation.       │", Colors.MAGENTA
         )
     )
     print(
@@ -3174,7 +3268,7 @@ def run_setup_wizard(args):
 
         print()
         print_header("Reconfigure")
-        print_success("You already have Hermes configured.")
+        print_success("You already have ProteinClaw configured.")
         print_info("Running the full wizard — each prompt shows your current value.")
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
@@ -3198,7 +3292,7 @@ def run_setup_wizard(args):
         if migration_ran:
             config = load_config()
 
-        setup_mode = prompt_choice("How would you like to set up Hermes?", [
+        setup_mode = prompt_choice("How would you like to set up ProteinClaw?", [
             "Quick setup — provider, model & messaging (recommended)",
             "Full setup — configure everything",
         ], 0)
@@ -3242,6 +3336,10 @@ def run_setup_wizard(args):
     if not (migration_ran and _skip_configured_section(config, "tools", "Tools")):
         setup_tools(config, first_install=not is_existing)
 
+    # Section 6: Protein Design
+    if not (migration_ran and _skip_configured_section(config, "protein_design", "Protein Design")):
+        setup_protein_design(config)
+
     # Save and show summary
     save_config(config)
     _print_setup_summary(config, hermes_home)
@@ -3272,7 +3370,7 @@ def _offer_launch_chat():
 
     chat_argv = _resolve_hermes_chat_argv()
     if not chat_argv:
-        print_info("Could not relaunch Hermes automatically. Run 'hermes chat' manually.")
+        print_info("Could not relaunch ProteinClaw automatically. Run 'hermes chat' manually.")
         return
 
     os.execvp(chat_argv[0], chat_argv)
@@ -3415,7 +3513,7 @@ def _run_quick_setup(config: dict, hermes_home):
     if missing_messaging:
         print()
         print_header("Messaging Platforms")
-        print_info("Connect Hermes to messaging apps to chat from anywhere.")
+        print_info("Connect ProteinClaw to messaging apps to chat from anywhere.")
         print_info("You can configure these later with 'hermes setup gateway'.")
 
         # Group by platform (preserving order)

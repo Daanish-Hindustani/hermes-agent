@@ -1,5 +1,5 @@
 """
-Profile management for multiple isolated Hermes instances.
+Profile management for multiple isolated ProteinClaw instances.
 
 Each profile is a fully independent HERMES_HOME directory with its own
 config.yaml, .env, memory, sessions, skills, gateway, cron, and logs.
@@ -127,7 +127,7 @@ _RESERVED_NAMES = frozenset({
     "hermes", "default", "test", "tmp", "root", "sudo",
 })
 
-# Hermes subcommands that cannot be used as profile names/aliases
+# ProteinClaw subcommands that cannot be used as profile names/aliases
 _HERMES_SUBCOMMANDS = frozenset({
     "chat", "model", "gateway", "setup", "whatsapp", "login", "logout",
     "status", "cron", "doctor", "dump", "config", "pairing", "skills", "tools",
@@ -1093,7 +1093,7 @@ def rename_profile(old_name: str, new_name: str) -> Path:
 
 def generate_bash_completion() -> str:
     """Generate a bash completion script for hermes profile names."""
-    return '''# Hermes Agent profile completion
+    return '''# ProteinClaw profile completion
 # Add to ~/.bashrc: eval "$(hermes completion bash)"
 
 _hermes_profiles() {
@@ -1144,7 +1144,7 @@ complete -F _hermes_completion hermes
 def generate_zsh_completion() -> str:
     """Generate a zsh completion script for hermes profile names."""
     return '''#compdef hermes
-# Hermes Agent profile completion
+# ProteinClaw profile completion
 # Add to ~/.zshrc: eval "$(hermes completion zsh)"
 
 _hermes() {

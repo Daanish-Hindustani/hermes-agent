@@ -1,7 +1,7 @@
 {
-  "name": "hermes-agent",
+  "name": "proteinclaw",
   "version": "1.0.0",
-  "description": "An AI agent with advanced tool-calling capabilities, featuring a flexible toolsets system for organizing and managing tools.",
+  "description": "ProteinClaw — protein-design agent forked from Nous Research's Hermes Agent.",
   "private": true,
   "scripts": {
     "postinstall": "echo '✅ Browser tools ready. Run: python run_agent.py --help'"

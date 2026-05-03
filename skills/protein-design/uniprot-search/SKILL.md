@@ -2,7 +2,7 @@
 name: uniprot-search
 description: Use uniprot_search to discover protein targets, reviewed sequences, functional annotations, domains, features, and PDB cross-references.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

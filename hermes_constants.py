@@ -1,4 +1,4 @@
-"""Shared constants for Hermes Agent.
+"""Shared constants for ProteinClaw (Hermes Agent fork for protein design).
 
 Import-safe module with no dependencies — can be imported from anywhere
 without risk of circular imports.
@@ -8,52 +8,73 @@ import os
 from pathlib import Path
 
 
-def get_hermes_home() -> Path:
-    """Return the Hermes home directory (default: ~/.hermes).
+def _resolve_home_env() -> str:
+    """Return the configured home dir from env, preferring PROTEINCLAW_HOME.
 
-    Reads HERMES_HOME env var, falls back to ~/.hermes.
-    This is the single source of truth — all other copies should import this.
+    Falls back to HERMES_HOME for backward compatibility with existing installs.
     """
-    val = os.environ.get("HERMES_HOME", "").strip()
-    return Path(val) if val else Path.home() / ".hermes"
+    val = os.environ.get("PROTEINCLAW_HOME", "").strip()
+    if val:
+        return val
+    return os.environ.get("HERMES_HOME", "").strip()
+
+
+def get_hermes_home() -> Path:
+    """Return the agent home directory.
+
+    Resolution order:
+      1. ``$PROTEINCLAW_HOME`` if set
+      2. ``$HERMES_HOME`` if set (backward compat)
+      3. ``~/.proteinclaw`` if it exists
+      4. ``~/.hermes`` if it exists (existing install — keep using it)
+      5. ``~/.proteinclaw`` (default for new installs)
+
+    Function name kept as ``get_hermes_home`` to avoid an import-graph rename
+    across 379 callers; this is the single source of truth.
+    """
+    val = _resolve_home_env()
+    if val:
+        return Path(val)
+    pc_home = Path.home() / ".proteinclaw"
+    hermes_home = Path.home() / ".hermes"
+    if pc_home.exists():
+        return pc_home
+    if hermes_home.exists():
+        return hermes_home
+    return pc_home
 
 
 def get_default_hermes_root() -> Path:
-    """Return the root Hermes directory for profile-level operations.
+    """Return the root agent directory for profile-level operations.
 
-    In standard deployments this is ``~/.hermes``.
-
-    In Docker or custom deployments where ``HERMES_HOME`` points outside
-    ``~/.hermes`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly
-    — that IS the root.
-
-    In profile mode where ``HERMES_HOME`` is ``<root>/profiles/<name>``,
-    returns ``<root>`` so that ``profile list`` can see all profiles.
-    Works both for standard (``~/.hermes/profiles/coder``) and Docker
-    (``/opt/data/profiles/coder``) layouts.
+    In standard deployments this is ``~/.proteinclaw`` (or ``~/.hermes`` for
+    legacy installs). In Docker or custom deployments where the home env var
+    points outside the native dir, returns that directly. In profile mode
+    where the home env var is ``<root>/profiles/<name>``, returns ``<root>``.
 
     Import-safe — no dependencies beyond stdlib.
     """
-    native_home = Path.home() / ".hermes"
-    env_home = os.environ.get("HERMES_HOME", "")
+    pc_home = Path.home() / ".proteinclaw"
+    hermes_home = Path.home() / ".hermes"
+    native_home = pc_home if pc_home.exists() or not hermes_home.exists() else hermes_home
+
+    env_home = _resolve_home_env()
     if not env_home:
         return native_home
     env_path = Path(env_home)
     try:
         env_path.resolve().relative_to(native_home.resolve())
-        # HERMES_HOME is under ~/.hermes (normal or profile mode)
+        # env home is under the native dir (normal or profile mode)
         return native_home
     except ValueError:
         pass
 
     # Docker / custom deployment.
     # Check if this is a profile path: <root>/profiles/<name>
-    # If the immediate parent dir is named "profiles", the root is
-    # the grandparent — this covers Docker profiles correctly.
     if env_path.parent.name == "profiles":
         return env_path.parent.parent
 
-    # Not a profile path — HERMES_HOME itself is the root
+    # Not a profile path — env home itself is the root
     return env_path
 
 
@@ -72,7 +93,7 @@ def get_optional_skills_dir(default: Path | None = None) -> Path:
 
 
 def get_hermes_dir(new_subpath: str, old_name: str) -> Path:
-    """Resolve a Hermes subdirectory with backward compatibility.
+    """Resolve a ProteinClaw subdirectory with backward compatibility.
 
     New installs get the consolidated layout (e.g. ``cache/images``).
     Existing installs that already have the old path (e.g. ``image_cache``)
@@ -117,7 +138,7 @@ def get_subprocess_home() -> str | None:
 
     When ``{HERMES_HOME}/home/`` exists on disk, subprocesses should use it
     as ``HOME`` so system tools (git, ssh, gh, npm …) write their configs
-    inside the Hermes data directory instead of the OS-level ``/root`` or
+    inside the ProteinClaw data directory instead of the OS-level ``/root`` or
     ``~/``.  This provides:
 
     * **Docker persistence** — tool configs land inside the persistent volume.

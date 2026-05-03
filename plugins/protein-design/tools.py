@@ -73,7 +73,7 @@ def _load_structure_residues(path: Path) -> dict[str, set[int]]:
     # Tool-side validation is deliberately lightweight. PDB is parsed fully
     # enough to catch common bad chain/range mistakes; CIF files are accepted
     # and left to RFD3 prevalidation because robust CIF parsing is a dependency
-    # we do not want in the Hermes process.
+    # we do not want in the ProteinClaw process.
     suffixes = "".join(path.suffixes).lower()
     if suffixes.endswith(".pdb") or suffixes.endswith(".ent"):
         return parse_pdb_residues(path)

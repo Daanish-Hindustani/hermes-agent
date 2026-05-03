@@ -1,5 +1,5 @@
 """
-HermesAgentBaseEnv -- Abstract Base Environment for Hermes-Agent + Atropos
+HermesAgentBaseEnv -- Abstract Base Environment for ProteinClaw-Agent + Atropos
 
 Provides the Atropos integration plumbing that all hermes-agent environments share:
 - Two-mode operation (OpenAI server for Phase 1, VLLM ManagedServer for Phase 2)

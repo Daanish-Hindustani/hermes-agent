@@ -7,7 +7,7 @@ keystrokes can be fed back in.  The only caller today is the
 
 Design constraints:
 
-* **POSIX-only.**  Hermes Agent supports Windows exclusively via WSL, which
+* **POSIX-only.**  ProteinClaw supports Windows exclusively via WSL, which
   exposes a native POSIX PTY via ``openpty(3)``.  Native Windows Python
   has no PTY; :class:`PtyUnavailableError` is raised with a user-readable
   install/platform message so the dashboard can render a banner instead of
@@ -99,7 +99,7 @@ class PtyBridge:
             if sys.platform.startswith("win"):
                 raise PtyUnavailableError(
                     "Pseudo-terminals are unavailable on this platform. "
-                    "Hermes Agent supports Windows only via WSL."
+                    "ProteinClaw supports Windows only via WSL."
                 )
             if ptyprocess is None:
                 raise PtyUnavailableError(

@@ -1,1 +1,1 @@
-# Hermes plugins package
+# ProteinClaw plugins package

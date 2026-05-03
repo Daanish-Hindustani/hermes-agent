@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""JSON entrypoint for the Hermes ESMFold image."""
+"""JSON entrypoint for the ProteinClaw ESMFold image."""
 
 from __future__ import annotations
 

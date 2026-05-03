@@ -114,7 +114,7 @@ from cron.jobs import get_due_jobs, mark_job_run, save_job_output, advance_next_
 # locally for audit.
 SILENT_MARKER = "[SILENT]"
 
-# Resolve Hermes home directory (respects HERMES_HOME override)
+# Resolve ProteinClaw home directory (respects HERMES_HOME override)
 _hermes_home = get_hermes_home()
 
 # File-based lock prevents concurrent ticks from gateway + daemon + systemd timer

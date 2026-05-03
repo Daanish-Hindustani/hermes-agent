@@ -2,7 +2,7 @@
 name: protein-mpnn-design
 description: Use protein_mpnn_design for fixed-backbone sequence design after RFD3 or with existing structures.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

@@ -2,7 +2,7 @@
 name: alphafold2-multimer-predict
 description: Use alphafold2_multimer_predict to predict binder-target complex structures with an AlphaFold2/ColabFold multimer container.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

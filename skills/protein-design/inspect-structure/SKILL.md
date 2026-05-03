@@ -2,7 +2,7 @@
 name: inspect-structure
 description: Use inspect_structure to inspect local PDB/CIF files for chain IDs, residue ranges, gaps, HETATM records, and resolution before RFD3 or ProteinMPNN.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

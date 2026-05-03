@@ -2,7 +2,7 @@
 name: rfd3-design
 description: Use rfd3_design for RFdiffusion3 backbone generation, including binder, motif scaffold, partial diffusion, free generation, hotspots, and contig construction.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

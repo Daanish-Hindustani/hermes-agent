@@ -85,7 +85,7 @@ def _coerce_gateway_timestamp(value: Any) -> Optional[float]:
     if isinstance(value, bool):  # bool is a subclass of int — skip it
         return None
     if isinstance(value, (int, float)):
-        # Some platform events use milliseconds; Hermes state rows use seconds.
+        # Some platform events use milliseconds; ProteinClaw state rows use seconds.
         return float(value) / 1000.0 if float(value) > 10_000_000_000 else float(value)
     if isinstance(value, str):
         text = value.strip()
@@ -222,7 +222,7 @@ _ensure_ssl_certs()
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Resolve Hermes home directory (respects HERMES_HOME override)
+# Resolve ProteinClaw home directory (respects HERMES_HOME override)
 from hermes_constants import get_hermes_home
 from utils import atomic_yaml_write, base_url_host_matches, is_truthy_value
 _hermes_home = get_hermes_home()
@@ -703,11 +703,11 @@ def _resolve_gateway_model(config: dict | None = None) -> str:
 
 
 def _resolve_hermes_bin() -> Optional[list[str]]:
-    """Resolve the Hermes update command as argv parts.
+    """Resolve the ProteinClaw update command as argv parts.
 
     Tries in order:
     1. ``shutil.which("hermes")`` — standard PATH lookup
-    2. ``sys.executable -m hermes_cli.main`` — fallback when Hermes is running
+    2. ``sys.executable -m hermes_cli.main`` — fallback when ProteinClaw is running
        from a venv/module invocation and the ``hermes`` shim is not on PATH
 
     Returns argv parts ready for quoting/joining, or ``None`` if neither works.
@@ -2324,7 +2324,7 @@ class GatewayRunner:
         
         Returns True if at least one adapter connected successfully.
         """
-        logger.info("Starting Hermes Gateway...")
+        logger.info("Starting ProteinClaw Gateway...")
         logger.info("Session storage: %s", self.config.sessions_dir)
         try:
             from hermes_cli.profiles import get_active_profile_name
@@ -4505,7 +4505,7 @@ class GatewayRunner:
                                 "🎤 I received your voice message but can't transcribe it — "
                                 "no speech-to-text provider is configured.\n\n"
                                 "To enable voice: install faster-whisper "
-                                "(`pip install faster-whisper` in the Hermes venv) "
+                                "(`pip install faster-whisper` in the ProteinClaw venv) "
                                 "and set `stt.enabled: true` in config.yaml, "
                                 "then /restart the gateway."
                             )
@@ -5079,7 +5079,7 @@ class GatewayRunner:
             if not os.getenv(env_key):
                 adapter = self.adapters.get(source.platform)
                 if adapter:
-                    # Slack dispatches all Hermes commands through a single
+                    # Slack dispatches all ProteinClaw commands through a single
                     # parent slash command `/hermes`; bare `/sethome` is not
                     # registered and would fail with "app did not respond".
                     sethome_cmd = (
@@ -5090,7 +5090,7 @@ class GatewayRunner:
                     await adapter.send(
                         source.chat_id,
                         f"📬 No home channel is set for {platform_name.title()}. "
-                        f"A home channel is where Hermes delivers cron job results "
+                        f"A home channel is where ProteinClaw delivers cron job results "
                         f"and cross-platform messages.\n\n"
                         f"Type {sethome_cmd} to make this chat your home channel, "
                         f"or ignore to skip."
@@ -5784,7 +5784,7 @@ class GatewayRunner:
                 title = None
 
         lines = [
-            "📊 **Hermes Gateway Status**",
+            "📊 **ProteinClaw Gateway Status**",
             "",
             f"**Session ID:** `{session_entry.session_id}`",
         ]
@@ -6064,7 +6064,7 @@ class GatewayRunner:
         """Handle /help command - list available commands."""
         from hermes_cli.commands import gateway_help_lines
         lines = [
-            "📖 **Hermes Commands**\n",
+            "📖 **ProteinClaw Commands**\n",
             *gateway_help_lines(),
         ]
         try:
@@ -8360,13 +8360,13 @@ class GatewayRunner:
             lines.append("")
             lines.append("⏱ Pastes will auto-delete in 6 hours.")
             lines.append("For full log uploads, use `hermes debug share` from the CLI.")
-            lines.append("Share these links with the Hermes team for support.")
+            lines.append("Share these links with the ProteinClaw team for support.")
             return "\n".join(lines)
 
         return await loop.run_in_executor(None, _collect_and_upload)
 
     async def _handle_update_command(self, event: MessageEvent) -> str:
-        """Handle /update command — update Hermes Agent to the latest version.
+        """Handle /update command — update ProteinClaw to the latest version.
 
         Spawns ``hermes update`` in a detached session (via ``setsid``) so it
         survives the gateway restart that ``hermes update`` may trigger. Marker
@@ -8385,7 +8385,7 @@ class GatewayRunner:
             return "✗ /update is only available from messaging platforms. Run `hermes update` from the terminal."
 
         if is_managed():
-            return f"✗ {format_managed_message('update Hermes Agent')}"
+            return f"✗ {format_managed_message('update ProteinClaw')}"
 
         project_root = Path(__file__).parent.parent.resolve()
         git_dir = project_root / '.git'
@@ -8397,7 +8397,7 @@ class GatewayRunner:
         if not hermes_cmd:
             return (
                 "✗ Could not locate the `hermes` command. "
-                "Hermes is running, but the update command could not find the "
+                "ProteinClaw is running, but the update command could not find the "
                 "executable on PATH or via the current Python interpreter. "
                 "Try running `hermes update` manually in your terminal."
             )
@@ -8456,7 +8456,7 @@ class GatewayRunner:
             return f"✗ Failed to start update: {e}"
 
         self._schedule_update_notification_watch()
-        return "⚕ Starting Hermes update… I'll stream progress here."
+        return "⚕ Starting ProteinClaw update… I'll stream progress here."
 
     def _schedule_update_notification_watch(self) -> None:
         """Ensure a background task is watching for update completion."""
@@ -8575,9 +8575,9 @@ class GatewayRunner:
                     exit_code_raw = exit_code_path.read_text().strip() or "1"
                     exit_code = int(exit_code_raw)
                     if exit_code == 0:
-                        await adapter.send(chat_id, "✅ Hermes update finished.")
+                        await adapter.send(chat_id, "✅ ProteinClaw update finished.")
                     else:
-                        await adapter.send(chat_id, "❌ Hermes update failed (exit code {}).".format(exit_code))
+                        await adapter.send(chat_id, "❌ ProteinClaw update failed (exit code {}).".format(exit_code))
                     logger.info("Update finished (exit=%s), notified %s", exit_code, session_key)
                 except Exception as e:
                     logger.warning("Update final notification failed: %s", e)
@@ -8658,7 +8658,7 @@ class GatewayRunner:
             exit_code_path.write_text("124")
             await _flush_buffer()
             try:
-                await adapter.send(chat_id, "❌ Hermes update timed out after 30 minutes.")
+                await adapter.send(chat_id, "❌ ProteinClaw update timed out after 30 minutes.")
             except Exception:
                 pass
             for p in (pending_path, claimed_path, output_path,
@@ -8727,14 +8727,14 @@ class GatewayRunner:
                     if len(output) > 3500:
                         output = "…" + output[-3500:]
                     if exit_code == 0:
-                        msg = f"✅ Hermes update finished.\n\n```\n{output}\n```"
+                        msg = f"✅ ProteinClaw update finished.\n\n```\n{output}\n```"
                     else:
-                        msg = f"❌ Hermes update failed.\n\n```\n{output}\n```"
+                        msg = f"❌ ProteinClaw update failed.\n\n```\n{output}\n```"
                 else:
                     if exit_code == 0:
-                        msg = "✅ Hermes update finished successfully."
+                        msg = "✅ ProteinClaw update finished successfully."
                     else:
-                        msg = "❌ Hermes update failed. Check the gateway logs or run `hermes update` manually for details."
+                        msg = "❌ ProteinClaw update failed. Check the gateway logs or run `hermes update` manually for details."
                 await adapter.send(chat_id, msg)
                 logger.info(
                     "Sent post-update notification to %s:%s (exit=%s)",
@@ -8937,7 +8937,7 @@ class GatewayRunner:
             if self._has_setup_skill():
                 disabled_note += (
                     " You have a skill called hermes-agent-setup that can help "
-                    "users configure Hermes features including voice, tools, and more."
+                    "users configure ProteinClaw features including voice, tools, and more."
                 )
             disabled_note += "]"
             if user_text:
@@ -8972,7 +8972,7 @@ class GatewayRunner:
                         if self._has_setup_skill():
                             _no_stt_note += (
                                 " You have a skill called hermes-agent-setup "
-                                "that can help users configure Hermes features "
+                                "that can help users configure ProteinClaw features "
                                 "including voice, tools, and more."
                             )
                         _no_stt_note += "]"
@@ -9681,7 +9681,7 @@ class GatewayRunner:
         return len(to_evict)
 
     # ------------------------------------------------------------------
-    # Proxy mode: forward messages to a remote Hermes API server
+    # Proxy mode: forward messages to a remote ProteinClaw API server
     # ------------------------------------------------------------------
 
     def _get_proxy_url(self) -> Optional[str]:
@@ -9710,7 +9710,7 @@ class GatewayRunner:
         run_generation: Optional[int] = None,
         event_message_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Forward the message to a remote Hermes API server instead of
+        """Forward the message to a remote ProteinClaw API server instead of
         running a local AIAgent.
 
         When ``GATEWAY_PROXY_URL`` (or ``gateway.proxy_url`` in config.yaml)
@@ -9751,7 +9751,7 @@ class GatewayRunner:
         # Build messages in OpenAI chat format --------------------------
         #
         # The remote api_server can maintain session continuity via
-        # X-Hermes-Session-Id, so it loads its own history.  We only
+        # X-ProteinClaw-Session-Id, so it loads its own history.  We only
         # need to send the current user message.  If the remote has
         # no history for this session yet, include what we have locally
         # so the first exchange has context.
@@ -9777,7 +9777,7 @@ class GatewayRunner:
         if proxy_key:
             headers["Authorization"] = f"Bearer {proxy_key}"
         if session_id:
-            headers["X-Hermes-Session-Id"] = session_id
+            headers["X-ProteinClaw-Session-Id"] = session_id
 
         body = {
             "model": "hermes-agent",
@@ -12191,7 +12191,7 @@ def main():
     """CLI entry point for the gateway."""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Hermes Gateway - Multi-platform messaging")
+    parser = argparse.ArgumentParser(description="ProteinClaw Gateway - Multi-platform messaging")
     parser.add_argument("--config", "-c", help="Path to gateway config file")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     

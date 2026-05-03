@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Hermes Agent CLI - Interactive Terminal Interface
+ProteinClaw CLI - Interactive Terminal Interface
 
-A beautiful command-line interface for the Hermes Agent, inspired by Claude Code.
+A beautiful command-line interface for the ProteinClaw, inspired by Claude Code.
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
@@ -319,10 +319,10 @@ def load_cli_config() -> Dict[str, Any]:
                 "teacher": "You are a patient teacher. Explain concepts clearly with examples.",
                 "kawaii": "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ",
                 "catgirl": "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!",
-                "pirate": "Arrr! Ye be talkin' to Captain Hermes, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
+                "pirate": "Arrr! Ye be talkin' to Captain ProteinClaw, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
                 "shakespeare": "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?",
                 "surfer": "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga!",
-                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me Hermes - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
+                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me ProteinClaw - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
                 "uwu": "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<",
                 "philosopher": "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.",
                 "hype": "YOOO LET'S GOOOO!!! I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS!",
@@ -1640,7 +1640,7 @@ HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████�
 [#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
 [#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
 
-# ASCII Art - Hermes Caduceus (compact, fits in left panel)
+# ASCII Art - ProteinClaw Caduceus (compact, fits in left panel)
 HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
 [#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
 [#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
@@ -1676,7 +1676,7 @@ def _build_compact_banner() -> str:
         line1 = "⚕ NOUS HERMES - AI Agent Framework"
         tiny_line = "⚕ NOUS HERMES"
     else:
-        agent_name = _skin.get_branding("agent_name", "Hermes Agent") if _skin else "Hermes Agent"
+        agent_name = _skin.get_branding("agent_name", "ProteinClaw") if _skin else "ProteinClaw"
         line1 = f"{agent_name} - AI Agent Framework"
         tiny_line = agent_name
 
@@ -1836,7 +1836,7 @@ def save_config_value(key_path: str, value: any) -> bool:
 
 class HermesCLI:
     """
-    Interactive CLI for the Hermes Agent.
+    Interactive CLI for the ProteinClaw.
     
     Provides a REPL interface with rich formatting, command history,
     and tool execution capabilities.
@@ -1858,7 +1858,7 @@ class HermesCLI:
         ignore_rules: bool = False,
     ):
         """
-        Initialize the Hermes CLI.
+        Initialize the ProteinClaw CLI.
 
         Args:
             model: Model to use (default: from env or claude-sonnet)
@@ -2086,7 +2086,7 @@ class HermesCLI:
 
         # Opportunistic state.db maintenance — runs at most once per
         # min_interval_hours, tracked via state_meta in state.db itself so
-        # it's shared across all Hermes processes for this HERMES_HOME.
+        # it's shared across all ProteinClaw processes for this HERMES_HOME.
         # Never blocks startup on failure.
         _run_state_db_auto_maintenance(self._session_db)
 
@@ -2142,17 +2142,6 @@ class HermesCLI:
         self._image_counter = 0
         self.preloaded_skills: list[str] = []
         self._startup_skills_line_shown = False
-
-        # Voice mode state (also reinitialized inside run() for interactive TUI).
-        self._voice_lock = threading.Lock()
-        self._voice_mode = False
-        self._voice_tts = False
-        self._voice_recorder = None
-        self._voice_recording = False
-        self._voice_processing = False
-        self._voice_continuous = False
-        self._voice_tts_done = threading.Event()
-        self._voice_tts_done.set()
 
         # Status bar visibility (toggled via /statusbar)
         self._status_bar_visible = True
@@ -2426,24 +2415,6 @@ class HermesCLI:
             return f"  {txt}  ({elapsed_str})"
         return f"  {txt}"
 
-    def _get_voice_status_fragments(self, width: Optional[int] = None):
-        """Return the voice status bar fragments for the interactive TUI."""
-        width = width or self._get_tui_terminal_width()
-        compact = self._use_minimal_tui_chrome(width=width)
-        if self._voice_recording:
-            if compact:
-                return [("class:voice-status-recording", " ● REC ")]
-            return [("class:voice-status-recording", " ● REC  Ctrl+B to stop ")]
-        if self._voice_processing:
-            if compact:
-                return [("class:voice-status", " ◉ STT ")]
-            return [("class:voice-status", " ◉ Transcribing... ")]
-        if compact:
-            return [("class:voice-status", " 🎤 Ctrl+B ")]
-        tts = " | TTS on" if self._voice_tts else ""
-        cont = " | Continuous" if self._voice_continuous else ""
-        return [("class:voice-status", f" 🎤 Voice mode{tts}{cont}  —  Ctrl+B to record ")]
-
     def _build_status_bar_text(self, width: Optional[int] = None) -> str:
         """Return a compact one-line session status string for the TUI footer."""
         try:
@@ -2476,7 +2447,7 @@ class HermesCLI:
                 parts.append(prompt_elapsed)
             return self._trim_status_bar_text(" │ ".join(parts), width)
         except Exception:
-            return f"⚕ {self.model if getattr(self, 'model', None) else 'Hermes'}"
+            return f"⚕ {self.model if getattr(self, 'model', None) else 'ProteinClaw'}"
 
     def _get_status_bar_fragments(self):
         if not self._status_bar_visible or getattr(self, '_model_picker_state', None):
@@ -3026,10 +2997,10 @@ class HermesCLI:
             try:
                 from hermes_cli.skin_engine import get_active_skin
                 _skin = get_active_skin()
-                label = _skin.get_branding("response_label", "⚕ Hermes")
+                label = _skin.get_branding("response_label", "⚕ ProteinClaw")
                 _text_hex = _skin.get_color("banner_text", "#FFF8DC")
             except Exception:
-                label = "⚕ Hermes"
+                label = "⚕ ProteinClaw"
                 _text_hex = "#FFF8DC"
             # Build a true-color ANSI escape for the response text color
             # so streamed content matches the Rich Panel appearance.
@@ -3555,7 +3526,7 @@ class HermesCLI:
                 f"this is likely too low for agent use with tools.[/]"
             )
             self._console_print(
-                "[dim]   Hermes needs 16k–32k minimum. Tool schemas + system prompt alone use ~4k–8k.[/]"
+                "[dim]   ProteinClaw needs 16k–32k minimum. Tool schemas + system prompt alone use ~4k–8k.[/]"
             )
             base_url = getattr(self, "base_url", "") or ""
             if "11434" in base_url or "ollama" in base_url.lower():
@@ -3571,15 +3542,15 @@ class HermesCLI:
                     "[dim]   Fix: Set model.context_length in config.yaml, or increase your server's context setting[/]"
                 )
 
-        # Warn if the configured model is a Nous Hermes LLM (not agentic)
+        # Warn if the configured model is a Nous ProteinClaw LLM (not agentic)
         from hermes_cli.model_switch import is_nous_hermes_non_agentic
 
         model_name = getattr(self, "model", "") or ""
         if is_nous_hermes_non_agentic(model_name):
             self._console_print()
             self._console_print(
-                "[bold yellow]⚠  Nous Research Hermes 3 & 4 models are NOT agentic and are not "
-                "designed for use with Hermes Agent.[/]"
+                "[bold yellow]⚠  Nous Research ProteinClaw 3 & 4 models are NOT agentic and are not "
+                "designed for use with ProteinClaw.[/]"
             )
             self._console_print(
                 "[dim]   They lack tool-calling capabilities required for agent workflows. "
@@ -3803,13 +3774,13 @@ class HermesCLI:
                     lines.append(f"         {ml}\n", style="dim")
             elif role == "assistant_last":
                 # Last assistant response shown in full, non-dim
-                lines.append("  ◆ Hermes: ", style=f"bold {_assistant_label_c}")
+                lines.append("  ◆ ProteinClaw: ", style=f"bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="")
                 for ml in msg_lines[1:]:
                     lines.append(f"            {ml}\n", style="")
             else:
-                lines.append("  ◆ Hermes: ", style=f"dim bold {_assistant_label_c}")
+                lines.append("  ◆ ProteinClaw: ", style=f"dim bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="dim")
                 for ml in msg_lines[1:]:
@@ -3953,7 +3924,7 @@ class HermesCLI:
             return ref
 
     def _handle_snapshot_command(self, command: str):
-        """Handle /snapshot — lightweight state snapshots for Hermes config/state.
+        """Handle /snapshot — lightweight state snapshots for ProteinClaw config/state.
 
         Syntax:
             /snapshot                  — list recent snapshots
@@ -4183,70 +4154,15 @@ class HermesCLI:
             _cprint(f"  {_DIM}Tip: type your next message, or run hermes chat -q --image {_termux_example_image_path(image_path.name)} \"What do you see?\"{_RST}")
 
     def _preprocess_images_with_vision(self, text: str, images: list, *, announce: bool = True) -> str:
-        """Analyze attached images via the vision tool and return enriched text.
+        """No-op: vision tools were removed in the protein-design fork.
 
-        Instead of embedding raw base64 ``image_url`` content parts in the
-        conversation (which only works with vision-capable models), this
-        pre-processes each image through the auxiliary vision model (Gemini
-        Flash) and prepends the descriptions to the user's message — the
-        same approach the messaging gateway uses.
-
-        The local file path is included so the agent can re-examine the
-        image later with ``vision_analyze`` if needed.
+        Returns ``text`` unchanged. Image attachments are silently dropped
+        from text enrichment; if you want image-aware behaviour, wire up a
+        protein-domain replacement (e.g. structure rendering) here.
         """
-        import asyncio as _asyncio
-        from tools.vision_tools import vision_analyze_tool
-
-        analysis_prompt = (
-            "Describe everything visible in this image in thorough detail. "
-            "Include any text, code, data, objects, people, layout, colors, "
-            "and any other notable visual information."
-        )
-
-        enriched_parts = []
-        for img_path in images:
-            if not img_path.exists():
-                continue
-            size_kb = img_path.stat().st_size // 1024
-            if announce:
-                _cprint(f"  {_DIM}👁️  analyzing {img_path.name} ({size_kb}KB)...{_RST}")
-            try:
-                result_json = _asyncio.run(
-                    vision_analyze_tool(image_url=str(img_path), user_prompt=analysis_prompt)
-                )
-                result = json.loads(result_json)
-                if result.get("success"):
-                    description = result.get("analysis", "")
-                    enriched_parts.append(
-                        f"[The user attached an image. Here's what it contains:\n{description}]\n"
-                        f"[If you need a closer look, use vision_analyze with "
-                        f"image_url: {img_path}]"
-                    )
-                    if announce:
-                        _cprint(f"  {_DIM}✓ image analyzed{_RST}")
-                else:
-                    enriched_parts.append(
-                        f"[The user attached an image but it couldn't be analyzed. "
-                        f"You can try examining it with vision_analyze using "
-                        f"image_url: {img_path}]"
-                    )
-                    if announce:
-                        _cprint(f"  {_DIM}⚠ vision analysis failed — path included for retry{_RST}")
-            except Exception as e:
-                enriched_parts.append(
-                    f"[The user attached an image but analysis failed ({e}). "
-                    f"You can try examining it with vision_analyze using "
-                    f"image_url: {img_path}]"
-                )
-                if announce:
-                    _cprint(f"  {_DIM}⚠ vision analysis error — path included for retry{_RST}")
-
-        # Combine: vision descriptions first, then the user's original text
-        user_text = text if isinstance(text, str) and text else ""
-        if enriched_parts:
-            prefix = "\n\n".join(enriched_parts)
-            return f"{prefix}\n\n{user_text}" if user_text else prefix
-        return user_text or "What do you see in this image?"
+        if announce and images:
+            _cprint(f"  {_DIM}(vision disabled — {len(images)} image(s) ignored){_RST}")
+        return text or ""
 
     def _show_tool_availability_warnings(self):
         """Show warnings about disabled tools due to missing API keys."""
@@ -4347,7 +4263,7 @@ class HermesCLI:
         is_running = bool(getattr(self, "_agent_running", False))
 
         lines = [
-            "Hermes CLI Status",
+            "ProteinClaw CLI Status",
             "",
             f"Session ID: {self.session_id}",
             f"Path: {display_hermes_home()}",
@@ -4408,7 +4324,7 @@ class HermesCLI:
                     f"    [bold {_accent_hex()}]{cmd:<22}[/] [dim]-[/] {_escape(info['description'])}"
                 )
 
-        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Hermes!{_RST}")
+        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with ProteinClaw!{_RST}")
         _cprint(f"  {_DIM}Multi-line: Alt+Enter for a new line{_RST}")
         _cprint(f"  {_DIM}Draft editor: Ctrl+G (Alt+G in VSCode/Cursor){_RST}")
         if _is_termux_environment():
@@ -4723,7 +4639,7 @@ class HermesCLI:
                 )
                 continue
 
-            print(f"\n  [Hermes #{visible_index}]")
+            print(f"\n  [ProteinClaw #{visible_index}]")
             tool_calls = msg.get("tool_calls") or []
             if content_text:
                 preview = content_text[:preview_limit]
@@ -6358,8 +6274,6 @@ class HermesCLI:
                 _cprint(f"  No agent running; queued as next turn: {payload[:80]}{'...' if len(payload) > 80 else ''}")
         elif canonical == "skin":
             self._handle_skin_command(cmd_original)
-        elif canonical == "voice":
-            self._handle_voice_command(cmd_original)
         elif canonical == "busy":
             self._handle_busy_command(cmd_original)
         else:
@@ -6567,11 +6481,11 @@ class HermesCLI:
                     try:
                         from hermes_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "⚕ Hermes")
+                        label = _skin.get_branding("response_label", "⚕ ProteinClaw")
                         _resp_color = _skin.get_color("response_border", "#CD7F32")
                         _resp_text = _skin.get_color("banner_text", "#FFF8DC")
                     except Exception:
-                        label = "⚕ Hermes"
+                        label = "⚕ ProteinClaw"
                         _resp_color = "#CD7F32"
                         _resp_text = "#FFF8DC"
 
@@ -7033,7 +6947,7 @@ class HermesCLI:
             _cprint(f"  {_ACCENT}✓ Reasoning effort set to '{arg}' (session only){_RST}")
 
     def _handle_busy_command(self, cmd: str):
-        """Handle /busy — control what Enter does while Hermes is working.
+        """Handle /busy — control what Enter does while ProteinClaw is working.
 
         Usage:
             /busy               Show current busy input mode
@@ -7064,11 +6978,11 @@ class HermesCLI:
         self.busy_input_mode = arg
         if save_config_value("display.busy_input_mode", arg):
             if arg == "queue":
-                behavior = "Enter will queue follow-up input while Hermes is busy."
+                behavior = "Enter will queue follow-up input while ProteinClaw is busy."
             elif arg == "steer":
                 behavior = "Enter will steer your message into the current run (after the next tool call)."
             else:
-                behavior = "Enter will interrupt the current run while Hermes is busy."
+                behavior = "Enter will interrupt the current run while ProteinClaw is busy."
             _cprint(f"  {_ACCENT}✓ Busy input mode set to '{arg}' (saved to config){_RST}")
             _cprint(f"  {_DIM}{behavior}{_RST}")
         else:
@@ -7605,20 +7519,6 @@ class HermesCLI:
             )
             self._invalidate()
 
-        if not self._voice_mode:
-            return
-        if not function_name or function_name.startswith("_"):
-            return
-        try:
-            from tools.voice_mode import play_beep
-            threading.Thread(
-                target=play_beep,
-                kwargs={"frequency": 1200, "duration": 0.06, "count": 1},
-                daemon=True,
-            ).start()
-        except Exception:
-            pass
-
     def _on_tool_start(self, tool_call_id: str, function_name: str, function_args: dict):
         """Capture local before-state for write-capable tools."""
         try:
@@ -7645,421 +7545,6 @@ class HermesCLI:
             )
         except Exception:
             logger.debug("Edit diff preview failed for %s", function_name, exc_info=True)
-
-    # ====================================================================
-    # Voice mode methods
-    # ====================================================================
-
-    def _voice_start_recording(self):
-        """Start capturing audio from the microphone."""
-        if getattr(self, '_should_exit', False):
-            return
-        from tools.voice_mode import create_audio_recorder, check_voice_requirements
-
-        reqs = check_voice_requirements()
-        if not reqs["audio_available"]:
-            if _is_termux_environment():
-                details = reqs.get("details", "")
-                if "Termux:API Android app is not installed" in details:
-                    raise RuntimeError(
-                        "Termux:API command package detected, but the Android app is missing.\n"
-                        "Install/update the Termux:API Android app, then retry /voice on.\n"
-                        "Fallback: pkg install python-numpy portaudio && python -m pip install sounddevice"
-                    )
-                raise RuntimeError(
-                    "Voice mode requires either Termux:API microphone access or Python audio libraries.\n"
-                    "Option 1: pkg install termux-api and install the Termux:API Android app\n"
-                    "Option 2: pkg install python-numpy portaudio && python -m pip install sounddevice"
-                )
-            raise RuntimeError(
-                "Voice mode requires sounddevice and numpy.\n"
-                f"Install with: {sys.executable} -m pip install sounddevice numpy"
-            )
-        if not reqs.get("stt_available", reqs.get("stt_key_set")):
-            raise RuntimeError(
-                "Voice mode requires an STT provider for transcription.\n"
-                "Option 1: pip install faster-whisper  (free, local)\n"
-                "Option 2: Set GROQ_API_KEY (free tier)\n"
-                "Option 3: Set VOICE_TOOLS_OPENAI_KEY (paid)"
-            )
-
-        # Prevent double-start from concurrent threads (atomic check-and-set)
-        with self._voice_lock:
-            if self._voice_recording:
-                return
-            self._voice_recording = True
-
-        # Load silence detection params from config
-        voice_cfg = {}
-        try:
-            from hermes_cli.config import load_config
-            voice_cfg = load_config().get("voice", {})
-        except Exception:
-            pass
-
-        if self._voice_recorder is None:
-            self._voice_recorder = create_audio_recorder()
-
-        # Apply config-driven silence params
-        self._voice_recorder._silence_threshold = voice_cfg.get("silence_threshold", 200)
-        self._voice_recorder._silence_duration = voice_cfg.get("silence_duration", 3.0)
-
-        def _on_silence():
-            """Called by AudioRecorder when silence is detected after speech."""
-            with self._voice_lock:
-                if not self._voice_recording:
-                    return
-            _cprint(f"\n{_DIM}Silence detected, auto-stopping...{_RST}")
-            if hasattr(self, '_app') and self._app:
-                self._app.invalidate()
-            self._voice_stop_and_transcribe()
-
-        # Audio cue: single beep BEFORE starting stream (avoid CoreAudio conflict)
-        if self._voice_beeps_enabled():
-            try:
-                from tools.voice_mode import play_beep
-                play_beep(frequency=880, count=1)
-            except Exception:
-                pass
-
-        try:
-            self._voice_recorder.start(on_silence_stop=_on_silence)
-        except Exception:
-            with self._voice_lock:
-                self._voice_recording = False
-            raise
-        if getattr(self._voice_recorder, "supports_silence_autostop", True):
-            _recording_hint = "auto-stops on silence | Ctrl+B to stop & exit continuous"
-        elif _is_termux_environment():
-            _recording_hint = "Termux:API capture | Ctrl+B to stop"
-        else:
-            _recording_hint = "Ctrl+B to stop"
-        _cprint(f"\n{_ACCENT}● Recording...{_RST} {_DIM}({_recording_hint}){_RST}")
-
-        # Periodically refresh prompt to update audio level indicator
-        def _refresh_level():
-            while True:
-                with self._voice_lock:
-                    still_recording = self._voice_recording
-                if not still_recording:
-                    break
-                if hasattr(self, '_app') and self._app:
-                    self._app.invalidate()
-                time.sleep(0.15)
-        threading.Thread(target=_refresh_level, daemon=True).start()
-
-    def _voice_stop_and_transcribe(self):
-        """Stop recording, transcribe via STT, and queue the transcript as input."""
-        # Atomic guard: only one thread can enter stop-and-transcribe.
-        # Set _voice_processing immediately so concurrent Ctrl+B presses
-        # don't race into the START path while recorder.stop() holds its lock.
-        with self._voice_lock:
-            if not self._voice_recording:
-                return
-            self._voice_recording = False
-            self._voice_processing = True
-
-        submitted = False
-        wav_path = None
-        try:
-            if self._voice_recorder is None:
-                return
-
-            wav_path = self._voice_recorder.stop()
-
-            # Audio cue: double beep after stream stopped (no CoreAudio conflict)
-            if self._voice_beeps_enabled():
-                try:
-                    from tools.voice_mode import play_beep
-                    play_beep(frequency=660, count=2)
-                except Exception:
-                    pass
-
-            if wav_path is None:
-                _cprint(f"{_DIM}No speech detected.{_RST}")
-                return
-
-            # _voice_processing is already True (set atomically above)
-            if hasattr(self, '_app') and self._app:
-                self._app.invalidate()
-            _cprint(f"{_DIM}Transcribing...{_RST}")
-
-            # Get STT model from config
-            stt_model = None
-            try:
-                from hermes_cli.config import load_config
-                stt_config = load_config().get("stt", {})
-                stt_model = stt_config.get("model")
-            except Exception:
-                pass
-
-            from tools.voice_mode import transcribe_recording
-            result = transcribe_recording(wav_path, model=stt_model)
-
-            if result.get("success") and result.get("transcript", "").strip():
-                transcript = result["transcript"].strip()
-                self._attached_images.clear()
-                if hasattr(self, '_app') and self._app:
-                    self._app.invalidate()
-                self._pending_input.put(transcript)
-                submitted = True
-            elif result.get("success"):
-                _cprint(f"{_DIM}No speech detected.{_RST}")
-            else:
-                error = result.get("error", "Unknown error")
-                _cprint(f"\n{_DIM}Transcription failed: {error}{_RST}")
-
-        except Exception as e:
-            _cprint(f"\n{_DIM}Voice processing error: {e}{_RST}")
-        finally:
-            with self._voice_lock:
-                self._voice_processing = False
-            if hasattr(self, '_app') and self._app:
-                self._app.invalidate()
-            # Clean up temp file
-            try:
-                if wav_path and os.path.isfile(wav_path):
-                    os.unlink(wav_path)
-            except Exception:
-                pass
-
-            # Track consecutive no-speech cycles to avoid infinite restart loops.
-            if not submitted:
-                self._no_speech_count = getattr(self, '_no_speech_count', 0) + 1
-                if self._no_speech_count >= 3:
-                    self._voice_continuous = False
-                    self._no_speech_count = 0
-                    _cprint(f"{_DIM}No speech detected 3 times, continuous mode stopped.{_RST}")
-                    return
-            else:
-                self._no_speech_count = 0
-
-            # If no transcript was submitted but continuous mode is active,
-            # restart recording so the user can keep talking.
-            # (When transcript IS submitted, process_loop handles restart
-            # after chat() completes.)
-            if self._voice_continuous and not submitted and not self._voice_recording:
-                def _restart_recording():
-                    try:
-                        self._voice_start_recording()
-                        if hasattr(self, '_app') and self._app:
-                            self._app.invalidate()
-                    except Exception as e:
-                        _cprint(f"{_DIM}Voice auto-restart failed: {e}{_RST}")
-                threading.Thread(target=_restart_recording, daemon=True).start()
-
-    def _voice_speak_response(self, text: str):
-        """Speak the agent's response aloud using TTS (runs in background thread)."""
-        if not self._voice_tts:
-            return
-        self._voice_tts_done.clear()
-        try:
-            from tools.tts_tool import text_to_speech_tool
-            from tools.voice_mode import play_audio_file
-
-            # Strip markdown and non-speech content for cleaner TTS
-            tts_text = text[:4000] if len(text) > 4000 else text
-            tts_text = re.sub(r'```[\s\S]*?```', ' ', tts_text)   # fenced code blocks
-            tts_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', tts_text)  # [text](url) -> text
-            tts_text = re.sub(r'https?://\S+', '', tts_text)      # URLs
-            tts_text = re.sub(r'\*\*(.+?)\*\*', r'\1', tts_text)  # bold
-            tts_text = re.sub(r'\*(.+?)\*', r'\1', tts_text)      # italic
-            tts_text = re.sub(r'`(.+?)`', r'\1', tts_text)        # inline code
-            tts_text = re.sub(r'^#+\s*', '', tts_text, flags=re.MULTILINE)  # headers
-            tts_text = re.sub(r'^\s*[-*]\s+', '', tts_text, flags=re.MULTILINE)  # list items
-            tts_text = re.sub(r'---+', '', tts_text)              # horizontal rules
-            tts_text = re.sub(r'\n{3,}', '\n\n', tts_text)        # excessive newlines
-            tts_text = tts_text.strip()
-            if not tts_text:
-                return
-
-            # Use MP3 output for CLI playback (afplay doesn't handle OGG well).
-            # The TTS tool may auto-convert MP3->OGG, but the original MP3 remains.
-            os.makedirs(os.path.join(tempfile.gettempdir(), "hermes_voice"), exist_ok=True)
-            mp3_path = os.path.join(
-                tempfile.gettempdir(), "hermes_voice",
-                f"tts_{time.strftime('%Y%m%d_%H%M%S')}.mp3",
-            )
-
-            text_to_speech_tool(text=tts_text, output_path=mp3_path)
-
-            # Play the MP3 directly (the TTS tool returns OGG path but MP3 still exists)
-            if os.path.isfile(mp3_path) and os.path.getsize(mp3_path) > 0:
-                play_audio_file(mp3_path)
-                # Clean up
-                try:
-                    os.unlink(mp3_path)
-                    ogg_path = mp3_path.rsplit(".", 1)[0] + ".ogg"
-                    if os.path.isfile(ogg_path):
-                        os.unlink(ogg_path)
-                except OSError:
-                    pass
-        except Exception as e:
-            logger.warning("Voice TTS playback failed: %s", e)
-            _cprint(f"{_DIM}TTS playback failed: {e}{_RST}")
-        finally:
-            self._voice_tts_done.set()
-
-    def _handle_voice_command(self, command: str):
-        """Handle /voice [on|off|tts|status] command."""
-        parts = command.strip().split(maxsplit=1)
-        subcommand = parts[1].lower().strip() if len(parts) > 1 else ""
-
-        if subcommand == "on":
-            self._enable_voice_mode()
-        elif subcommand == "off":
-            self._disable_voice_mode()
-        elif subcommand == "tts":
-            self._toggle_voice_tts()
-        elif subcommand == "status":
-            self._show_voice_status()
-        elif subcommand == "":
-            # Toggle
-            if self._voice_mode:
-                self._disable_voice_mode()
-            else:
-                self._enable_voice_mode()
-        else:
-            _cprint(f"Unknown voice subcommand: {subcommand}")
-            _cprint("Usage: /voice [on|off|tts|status]")
-
-    def _voice_beeps_enabled(self) -> bool:
-        """Return whether CLI voice mode should play record start/stop beeps."""
-        try:
-            from hermes_cli.config import load_config
-            voice_cfg = load_config().get("voice", {})
-            if isinstance(voice_cfg, dict):
-                return bool(voice_cfg.get("beep_enabled", True))
-        except Exception:
-            pass
-        return True
-
-    def _enable_voice_mode(self):
-        """Enable voice mode after checking requirements."""
-        if self._voice_mode:
-            _cprint(f"{_DIM}Voice mode is already enabled.{_RST}")
-            return
-
-        from tools.voice_mode import check_voice_requirements, detect_audio_environment
-
-        # Environment detection -- warn and block in incompatible environments
-        env_check = detect_audio_environment()
-        if not env_check["available"]:
-            _cprint(f"\n{_ACCENT}Voice mode unavailable in this environment:{_RST}")
-            for warning in env_check["warnings"]:
-                _cprint(f"  {_DIM}{warning}{_RST}")
-            return
-
-        reqs = check_voice_requirements()
-        if not reqs["available"]:
-            _cprint(f"\n{_ACCENT}Voice mode requirements not met:{_RST}")
-            for line in reqs["details"].split("\n"):
-                _cprint(f"  {_DIM}{line}{_RST}")
-            if reqs["missing_packages"]:
-                if _is_termux_environment():
-                    _cprint(f"\n  {_BOLD}Option 1: pkg install termux-api{_RST}")
-                    _cprint(f"  {_DIM}Then install/update the Termux:API Android app for microphone capture{_RST}")
-                    _cprint(f"  {_BOLD}Option 2: pkg install python-numpy portaudio && python -m pip install sounddevice{_RST}")
-                else:
-                    _cprint(f"\n  {_BOLD}Install: {sys.executable} -m pip install {' '.join(reqs['missing_packages'])}{_RST}")
-            return
-
-        with self._voice_lock:
-            self._voice_mode = True
-
-        # Check config for auto_tts
-        try:
-            from hermes_cli.config import load_config
-            voice_config = load_config().get("voice", {})
-            if voice_config.get("auto_tts", False):
-                with self._voice_lock:
-                    self._voice_tts = True
-        except Exception:
-            pass
-
-        # Voice mode instruction is injected as a user message prefix (not a
-        # system prompt change) to avoid invalidating the prompt cache.  See
-        # _voice_message_prefix property and its usage in _process_message().
-
-        tts_status = " (TTS enabled)" if self._voice_tts else ""
-        try:
-            from hermes_cli.config import load_config
-            _raw_ptt = load_config().get("voice", {}).get("record_key", "ctrl+b")
-            _ptt_key = _raw_ptt.lower().replace("ctrl+", "c-").replace("alt+", "a-")
-        except Exception:
-            _ptt_key = "c-b"
-        _ptt_display = _ptt_key.replace("c-", "Ctrl+").upper()
-        _cprint(f"\n{_ACCENT}Voice mode enabled{tts_status}{_RST}")
-        _cprint(f"  {_DIM}{_ptt_display} to start/stop recording{_RST}")
-        _cprint(f"  {_DIM}/voice tts  to toggle speech output{_RST}")
-        _cprint(f"  {_DIM}/voice off  to disable voice mode{_RST}")
-
-    def _disable_voice_mode(self):
-        """Disable voice mode, cancel any active recording, and stop TTS."""
-        recorder = None
-        with self._voice_lock:
-            if self._voice_recording and self._voice_recorder:
-                self._voice_recorder.cancel()
-                self._voice_recording = False
-            recorder = self._voice_recorder
-            self._voice_mode = False
-            self._voice_tts = False
-            self._voice_continuous = False
-
-        # Shut down the persistent audio stream in background
-        if recorder is not None:
-            def _bg_shutdown(rec=recorder):
-                try:
-                    rec.shutdown()
-                except Exception:
-                    pass
-            threading.Thread(target=_bg_shutdown, daemon=True).start()
-            self._voice_recorder = None
-
-        # Stop any active TTS playback
-        try:
-            from tools.voice_mode import stop_playback
-            stop_playback()
-        except Exception:
-            pass
-        self._voice_tts_done.set()
-
-        _cprint(f"\n{_DIM}Voice mode disabled.{_RST}")
-
-    def _toggle_voice_tts(self):
-        """Toggle TTS output for voice mode."""
-        if not self._voice_mode:
-            _cprint(f"{_DIM}Enable voice mode first: /voice on{_RST}")
-            return
-
-        with self._voice_lock:
-            self._voice_tts = not self._voice_tts
-        status = "enabled" if self._voice_tts else "disabled"
-
-        if self._voice_tts:
-            from tools.tts_tool import check_tts_requirements
-            if not check_tts_requirements():
-                _cprint(f"{_DIM}Warning: No TTS provider available. Install edge-tts or set API keys.{_RST}")
-
-        _cprint(f"{_ACCENT}Voice TTS {status}.{_RST}")
-
-    def _show_voice_status(self):
-        """Show current voice mode status."""
-        from hermes_cli.config import load_config
-        from tools.voice_mode import check_voice_requirements
-
-        reqs = check_voice_requirements()
-
-        _cprint(f"\n{_BOLD}Voice Mode Status{_RST}")
-        _cprint(f"  Mode:      {'ON' if self._voice_mode else 'OFF'}")
-        _cprint(f"  TTS:       {'ON' if self._voice_tts else 'OFF'}")
-        _cprint(f"  Recording: {'YES' if self._voice_recording else 'no'}")
-        _raw_key = load_config().get("voice", {}).get("record_key", "ctrl+b")
-        _display_key = _raw_key.replace("ctrl+", "Ctrl+").upper() if "ctrl+" in _raw_key.lower() else _raw_key
-        _cprint(f"  Record key: {_display_key}")
-        _cprint(f"\n  {_BOLD}Requirements:{_RST}")
-        for line in reqs["details"].split("\n"):
-            _cprint(f"    {line}")
 
     def _clarify_callback(self, question, choices):
         """
@@ -8629,63 +8114,6 @@ class HermesCLI:
             stream_callback = None
             stop_event = None
 
-            if self._voice_tts:
-                try:
-                    from tools.tts_tool import (
-                        _load_tts_config as _load_tts_cfg,
-                        _get_provider as _get_prov,
-                        _import_elevenlabs,
-                        _import_sounddevice,
-                        stream_tts_to_speaker,
-                    )
-                    _tts_cfg = _load_tts_cfg()
-                    if _get_prov(_tts_cfg) == "elevenlabs":
-                        # Verify both ElevenLabs SDK and audio output are available
-                        _import_elevenlabs()
-                        _import_sounddevice()
-                        use_streaming_tts = True
-                except (ImportError, OSError):
-                    pass
-                except Exception:
-                    pass
-
-            if use_streaming_tts:
-                text_queue = queue.Queue()
-                stop_event = threading.Event()
-
-                def display_callback(sentence: str):
-                    """Called by TTS consumer when a sentence is ready to display + speak."""
-                    nonlocal _streaming_box_opened
-                    if not _streaming_box_opened:
-                        _streaming_box_opened = True
-                        w = self.console.width
-                        label = " ⚕ Hermes "
-                        fill = w - 2 - len(label)
-                        _cprint(f"\n{_ACCENT}╭─{label}{'─' * max(fill - 1, 0)}╮{_RST}")
-                    _cprint(f"{_STREAM_PAD}{sentence.rstrip()}")
-
-                tts_thread = threading.Thread(
-                    target=stream_tts_to_speaker,
-                    args=(text_queue, stop_event, self._voice_tts_done),
-                    kwargs={"display_callback": display_callback},
-                    daemon=True,
-                )
-                tts_thread.start()
-
-                def stream_callback(delta: str):
-                    if text_queue is not None:
-                        text_queue.put(delta)
-
-            # When voice mode is active, prepend a brief instruction so the
-            # model responds concisely. The prefix is API-call-local only —
-            # run_conversation persists the original clean user message.
-            _voice_prefix = ""
-            if self._voice_mode and isinstance(message, str):
-                _voice_prefix = (
-                    "[Voice input — respond concisely and conversationally, "
-                    "2-3 sentences max. No code blocks or markdown.] "
-                )
-
             def run_agent():
                 nonlocal result
                 # Set callbacks inside the agent thread so thread-local storage
@@ -8699,7 +8127,7 @@ class HermesCLI:
                     set_secret_capture_callback(self._secret_capture_callback)
                 except Exception:
                     pass
-                agent_message = _voice_prefix + message if _voice_prefix else message
+                agent_message = message
                 # Prepend pending model switch note so the model knows about the switch
                 _msn = getattr(self, '_pending_model_switch_note', None)
                 if _msn:
@@ -8711,7 +8139,6 @@ class HermesCLI:
                         conversation_history=self.conversation_history[:-1],  # Exclude the message we just added
                         stream_callback=stream_callback,
                         task_id=self.session_id,
-                        persist_user_message=message if _voice_prefix else None,
                     )
                 except Exception as exc:
                     logging.error("run_conversation raised: %s", exc, exc_info=True)
@@ -8904,11 +8331,6 @@ class HermesCLI:
             if result and (result.get("failed") or result.get("partial")) and not response:
                 error_detail = result.get("error", "Unknown error")
                 response = f"Error: {error_detail}"
-                # Stop continuous voice mode on persistent errors (e.g. 429 rate limit)
-                # to avoid an infinite error → record → error loop
-                if self._voice_continuous:
-                    self._voice_continuous = False
-                    _cprint(f"\n{_DIM}Continuous voice mode stopped due to error.{_RST}")
 
             # Handle interrupt - check if we were interrupted
             pending_message = None
@@ -8949,11 +8371,11 @@ class HermesCLI:
                 try:
                     from hermes_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
-                    label = _skin.get_branding("response_label", "⚕ Hermes")
+                    label = _skin.get_branding("response_label", "⚕ ProteinClaw")
                     _resp_color = _skin.get_color("response_border", "#CD7F32")
                     _resp_text = _skin.get_color("banner_text", "#FFF8DC")
                 except Exception:
-                    label = "⚕ Hermes"
+                    label = "⚕ ProteinClaw"
                     _resp_color = "#CD7F32"
                     _resp_text = "#FFF8DC"
 
@@ -8996,16 +8418,6 @@ class HermesCLI:
                         f"({_api_calls}/{_max_iter}) — "
                         f"response may be incomplete{_RST}"
                     )
-
-            # Speak response aloud if voice TTS is enabled
-            # Skip batch TTS when streaming TTS already handled it
-            if self._voice_tts and response and not use_streaming_tts:
-                threading.Thread(
-                    target=self._voice_speak_response,
-                    args=(response,),
-                    daemon=True,
-                ).start()
-
 
             # Re-queue the interrupt message (and any that arrived while we were
             # processing the first) as the next prompt for process_loop.
@@ -9140,18 +8552,6 @@ class HermesCLI:
         # Icon-only custom prompts should still remain visible in special states.
         return symbol, symbol
 
-    def _audio_level_bar(self) -> str:
-        """Return a visual audio level indicator based on current RMS."""
-        _LEVEL_BARS = " ▁▂▃▄▅▆▇"
-        rec = getattr(self, "_voice_recorder", None)
-        if rec is None:
-            return ""
-        rms = rec.current_rms
-        # Normalize RMS (0-32767) to 0-7 index, with log-ish scaling
-        # Typical speech RMS is 500-5000, we cap display at ~8000
-        level = min(rms, 8000) * 7 // 8000
-        return _LEVEL_BARS[level]
-
     def _get_tui_prompt_fragments(self):
         """Return the prompt_toolkit fragments for the current interactive state."""
         symbol, state_suffix = self._get_tui_prompt_symbols()
@@ -9167,11 +8567,6 @@ class HermesCLI:
                 return [(style, f"{icon} {extra} {state_suffix}")]
             return [(style, f"{icon} {state_suffix}")]
 
-        if self._voice_recording:
-            bar = self._audio_level_bar()
-            return _state_fragment("class:voice-recording", "●", bar)
-        if self._voice_processing:
-            return _state_fragment("class:voice-processing", "◉")
         if self._sudo_state:
             return _state_fragment("class:sudo-prompt", "🔐")
         if self._secret_state:
@@ -9186,8 +8581,6 @@ class HermesCLI:
             return _state_fragment("class:prompt-working", self._command_spinner_frame())
         if self._agent_running:
             return _state_fragment("class:prompt-working", "⚕")
-        if self._voice_mode:
-            return _state_fragment("class:voice-prompt", "🎤")
         return [("class:prompt", symbol)]
 
     def _get_tui_prompt_text(self) -> str:
@@ -9299,7 +8692,7 @@ class HermesCLI:
         self.show_banner()
 
         # One-line Honcho session indicator (TTY-only, not captured by agent).
-        # Only show when the user explicitly configured Honcho for Hermes
+        # Only show when the user explicitly configured Honcho for ProteinClaw
         # (not auto-enabled from a stray HONCHO_API_KEY env var).
         # If resuming a session, load history and display it immediately
         # so the user has context before typing their first message.
@@ -9310,14 +8703,14 @@ class HermesCLI:
         try:
             from hermes_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
-            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Hermes Agent! Type your message or /help for commands.")
+            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to ProteinClaw! Type your message or /help for commands.")
             _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
         except Exception:
-            _welcome_text = "Welcome to Hermes Agent! Type your message or /help for commands."
+            _welcome_text = "Welcome to ProteinClaw! Type your message or /help for commands."
             _welcome_color = "#FFF8DC"
         self._console_print(f"[{_welcome_color}]{_welcome_text}[/]")
         # First-time OpenClaw-residue banner — fires once if ~/.openclaw/ exists
-        # after an OpenClaw→Hermes migration (especially migrations done by
+        # after an OpenClaw→ProteinClaw migration (especially migrations done by
         # OpenClaw's own tool, which doesn't archive the source directory).
         try:
             from agent.onboarding import (
@@ -9420,17 +8813,6 @@ class HermesCLI:
         # Clipboard image attachments (paste images into the CLI)
         self._attached_images: list[Path] = []
         self._image_counter = 0
-
-        # Voice mode state (protected by _voice_lock for cross-thread access)
-        self._voice_lock = threading.Lock()
-        self._voice_mode = False        # Whether voice mode is enabled
-        self._voice_tts = False         # Whether TTS output is enabled
-        self._voice_recorder = None     # AudioRecorder instance (lazy init)
-        self._voice_recording = False   # Whether currently recording
-        self._voice_processing = False  # Whether STT is in progress
-        self._voice_continuous = False  # Whether to auto-restart after agent responds
-        self._voice_tts_done = threading.Event()  # Signals TTS playback finished
-        self._voice_tts_done.set()  # Initially "done" (no TTS pending)
 
         # Register callbacks so terminal_tool prompts route through our UI
         set_sudo_password_callback(self._sudo_password_callback)
@@ -9802,31 +9184,11 @@ class HermesCLI:
             """Handle Ctrl+C - cancel interactive prompts, interrupt agent, or exit.
             
             Priority:
-            0. Cancel active voice recording
             1. Cancel active sudo/approval/clarify prompt
             2. Interrupt the running agent (first press)
             3. Force exit (second press within 2s, or when idle)
             """
             now = time.time()
-
-            # Cancel active voice recording.
-            # Run cancel() in a background thread to prevent blocking the
-            # event loop if AudioRecorder._lock or CoreAudio takes time.
-            _should_cancel_voice = False
-            _recorder_ref = None
-            with cli_ref._voice_lock:
-                if cli_ref._voice_recording and cli_ref._voice_recorder:
-                    _recorder_ref = cli_ref._voice_recorder
-                    cli_ref._voice_recording = False
-                    cli_ref._voice_continuous = False
-                    _should_cancel_voice = True
-            if _should_cancel_voice:
-                _cprint(f"\n{_DIM}Recording cancelled.{_RST}")
-                threading.Thread(
-                    target=_recorder_ref.cancel, daemon=True
-                ).start()
-                event.app.invalidate()
-                return
 
             # Cancel sudo prompt
             if self._sudo_state:
@@ -9933,82 +9295,13 @@ class HermesCLI:
             import signal as _sig
             from prompt_toolkit.application import run_in_terminal
             from hermes_cli.skin_engine import get_active_skin
-            agent_name = get_active_skin().get_branding("agent_name", "Hermes Agent")
+            agent_name = get_active_skin().get_branding("agent_name", "ProteinClaw")
             msg = f"\n{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
             def _suspend():
                 os.write(1, msg.encode())
                 os.kill(0, _sig.SIGTSTP)
             run_in_terminal(_suspend)
 
-        # Voice push-to-talk key: configurable via config.yaml (voice.record_key)
-        # Default: Ctrl+B (avoids conflict with Ctrl+R readline reverse-search)
-        # Config uses "ctrl+b" format; prompt_toolkit expects "c-b" format.
-        try:
-            from hermes_cli.config import load_config
-            _raw_key = load_config().get("voice", {}).get("record_key", "ctrl+b")
-            _voice_key = _raw_key.lower().replace("ctrl+", "c-").replace("alt+", "a-")
-        except Exception:
-            _voice_key = "c-b"
-
-        @kb.add(_voice_key)
-        def handle_voice_record(event):
-            """Toggle voice recording when voice mode is active.
-
-            IMPORTANT: This handler runs in prompt_toolkit's event-loop thread.
-            Any blocking call here (locks, sd.wait, disk I/O) freezes the
-            entire UI.  All heavy work is dispatched to daemon threads.
-            """
-            if not cli_ref._voice_mode:
-                return
-            # Always allow STOPPING a recording (even when agent is running)
-            if cli_ref._voice_recording:
-                # Manual stop via push-to-talk key: stop continuous mode
-                with cli_ref._voice_lock:
-                    cli_ref._voice_continuous = False
-                # Flag clearing is handled atomically inside _voice_stop_and_transcribe
-                event.app.invalidate()
-                threading.Thread(
-                    target=cli_ref._voice_stop_and_transcribe,
-                    daemon=True,
-                ).start()
-            else:
-                # Guard: don't START recording during agent run or interactive prompts
-                if cli_ref._agent_running:
-                    return
-                if cli_ref._clarify_state or cli_ref._sudo_state or cli_ref._approval_state:
-                    return
-                # Guard: don't start while a previous stop/transcribe cycle is
-                # still running — recorder.stop() holds AudioRecorder._lock and
-                # start() would block the event-loop thread waiting for it.
-                if cli_ref._voice_processing:
-                    return
-
-                # Interrupt TTS if playing, so user can start talking.
-                # stop_playback() is fast (just terminates a subprocess).
-                if not cli_ref._voice_tts_done.is_set():
-                    try:
-                        from tools.voice_mode import stop_playback
-                        stop_playback()
-                        cli_ref._voice_tts_done.set()
-                    except Exception:
-                        pass
-
-                with cli_ref._voice_lock:
-                    cli_ref._voice_continuous = True
-
-                # Dispatch to a daemon thread so play_beep(sd.wait),
-                # AudioRecorder.start(lock acquire), and config I/O
-                # never block the prompt_toolkit event loop.
-                def _start_recording():
-                    try:
-                        cli_ref._voice_start_recording()
-                        if hasattr(cli_ref, '_app') and cli_ref._app:
-                            cli_ref._app.invalidate()
-                    except Exception as e:
-                        _cprint(f"\n{_DIM}Voice recording failed: {e}{_RST}")
-
-                threading.Thread(target=_start_recording, daemon=True).start()
-                event.app.invalidate()
         from prompt_toolkit.keys import Keys
 
         @kb.add(Keys.BracketedPaste, eager=True)
@@ -10100,7 +9393,7 @@ class HermesCLI:
                 # No image found — show a hint
                 pass  # silent when no image (avoid noise on accidental press)
 
-        # Dynamic prompt: shows Hermes symbol when agent is working,
+        # Dynamic prompt: shows ProteinClaw symbol when agent is working,
         # or answer prompt when clarify freetext mode is active.
         cli_ref = self
 
@@ -10247,10 +9540,6 @@ class HermesCLI:
                 return Transformation(fragments=ti.fragments)
 
         def _get_placeholder():
-            if cli_ref._voice_recording:
-                return "recording... Ctrl+B to stop, Ctrl+C to cancel"
-            if cli_ref._voice_processing:
-                return "transcribing..."
             if cli_ref._sudo_state:
                 return "type password (hidden), Enter to submit · ESC to skip"
             if cli_ref._secret_state:
@@ -10267,8 +9556,6 @@ class HermesCLI:
                 return f"{frame} {status}"
             if cli_ref._agent_running:
                 return "msg=interrupt · /queue · /bg · /steer · Ctrl+C cancel"
-            if cli_ref._voice_mode:
-                return "type or Ctrl+B to record"
             return ""
 
         input_area.control.input_processors.append(_PlaceholderProcessor(_get_placeholder))
@@ -10417,7 +9704,7 @@ class HermesCLI:
                 else f"  {other_num_prefix}. Other (type your answer)"
             )
             preview_lines.extend(_wrap_panel_text(other_label, 60, subsequent_indent="    "))
-            box_width = _panel_box_width("Hermes needs your input", preview_lines)
+            box_width = _panel_box_width("ProteinClaw needs your input", preview_lines)
             inner_text_width = max(8, box_width - 2)
 
             # Pre-wrap choices + Other option — these are mandatory.
@@ -10492,8 +9779,8 @@ class HermesCLI:
             lines = []
             # Box top border
             lines.append(('class:clarify-border', '╭─ '))
-            lines.append(('class:clarify-title', 'Hermes needs your input'))
-            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("Hermes needs your input") - 3)) + '╮\n'))
+            lines.append(('class:clarify-title', 'ProteinClaw needs your input'))
+            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("ProteinClaw needs your input") - 3)) + '╮\n'))
             if not use_compact_chrome:
                 _append_blank_panel_line(lines, 'class:clarify-border', box_width)
 
@@ -10726,17 +10013,7 @@ class HermesCLI:
             height=Condition(lambda: bool(cli_ref._attached_images)),
         )
 
-        # Persistent voice mode status bar (visible only when voice mode is on)
-        def _get_voice_status():
-            return cli_ref._get_voice_status_fragments()
-
-        voice_status_bar = ConditionalContainer(
-            Window(
-                FormattedTextControl(_get_voice_status),
-                height=1,
-            ),
-            filter=Condition(lambda: cli_ref._voice_mode),
-        )
+        voice_status_bar = None
 
         status_bar = ConditionalContainer(
             Window(
@@ -11001,19 +10278,6 @@ class HermesCLI:
                         # Continuous voice: auto-restart recording after agent responds.
                         # Dispatch to a daemon thread so play_beep (sd.wait) and
                         # AudioRecorder.start (lock acquire) never block process_loop —
-                        # otherwise queued user input would stall silently.
-                        if self._voice_mode and self._voice_continuous and not self._voice_recording:
-                            def _restart_recording():
-                                try:
-                                    if self._voice_tts:
-                                        self._voice_tts_done.wait(timeout=60)
-                                        time.sleep(0.3)
-                                    self._voice_start_recording()
-                                    app.invalidate()
-                                except Exception as e:
-                                    _cprint(f"{_DIM}Voice auto-restart failed: {e}{_RST}")
-                            threading.Thread(target=_restart_recording, daemon=True).start()
-
                         # Drain process notifications (completions + watch matches)
                         # that arrived while the agent was running.
                         try:
@@ -11151,19 +10415,6 @@ class HermesCLI:
                     self.agent.interrupt()
                 except Exception:
                     pass
-            # Shut down voice recorder (release persistent audio stream)
-            if hasattr(self, '_voice_recorder') and self._voice_recorder:
-                try:
-                    self._voice_recorder.shutdown()
-                except Exception:
-                    pass
-                self._voice_recorder = None
-            # Clean up old temp voice recordings
-            try:
-                from tools.voice_mode import cleanup_temp_recordings
-                cleanup_temp_recordings()
-            except Exception:
-                pass
             # Unregister callbacks to avoid dangling references
             set_sudo_password_callback(None)
             set_approval_callback(None)
@@ -11225,7 +10476,7 @@ def main(
     ignore_rules: bool = False,
 ):
     """
-    Hermes Agent CLI - Interactive AI Assistant
+    ProteinClaw CLI - Interactive AI Assistant
     
     Args:
         query: Single query to execute (then exit). Alias: -q
@@ -11267,7 +10518,7 @@ def main(
     if gateway:
         import asyncio
         from gateway.run import start_gateway
-        print("Starting Hermes Gateway (messaging platforms)...")
+        print("Starting ProteinClaw Gateway (messaging platforms)...")
         asyncio.run(start_gateway())
         return
 
@@ -11438,7 +10689,7 @@ def main(
                     cli.agent.quiet_mode = True
                     cli.agent.suppress_status_output = True
                     # Suppress streaming display callbacks so stdout stays
-                    # machine-readable (no styled "Hermes" box, no tool-gen
+                    # machine-readable (no styled "ProteinClaw" box, no tool-gen
                     # status lines).  The response is printed once below.
                     cli.agent.stream_delta_callback = None
                     cli.agent.tool_gen_callback = None

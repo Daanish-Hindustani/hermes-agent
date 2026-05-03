@@ -2,7 +2,7 @@
 name: esmfold-predict
 description: Use esmfold_predict to fold designed or natural sequences locally with ESMFold and interpret pLDDT confidence.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

@@ -256,7 +256,7 @@ _PROVIDERS_WITHOUT_VISION: frozenset = frozenset({
 # OpenRouter app attribution headers
 _OR_HEADERS = {
     "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-    "X-OpenRouter-Title": "Hermes Agent",
+    "X-OpenRouter-Title": "ProteinClaw",
     "X-OpenRouter-Categories": "productivity,cli-agent",
 }
 
@@ -266,7 +266,7 @@ from hermes_cli import __version__ as _HERMES_VERSION
 
 _AI_GATEWAY_HEADERS = {
     "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-    "X-Title": "Hermes Agent",
+    "X-Title": "ProteinClaw",
     "User-Agent": f"HermesAgent/{_HERMES_VERSION}",
 }
 
@@ -313,7 +313,7 @@ def _codex_cloudflare_headers(access_token: str) -> Dict[str, str]:
     crash at client construction.
     """
     headers = {
-        "User-Agent": "codex_cli_rs/0.0.0 (Hermes Agent)",
+        "User-Agent": "codex_cli_rs/0.0.0 (ProteinClaw)",
         "originator": "codex_cli_rs",
     }
     if not isinstance(access_token, str) or not access_token.strip():
@@ -1003,7 +1003,7 @@ def _resolve_nous_runtime_api(*, force_refresh: bool = False) -> Optional[tuple[
 
 
 def _read_codex_access_token() -> Optional[str]:
-    """Read a valid, non-expired Codex OAuth access token from Hermes auth store.
+    """Read a valid, non-expired Codex OAuth access token from ProteinClaw auth store.
 
     If a credential pool exists but currently has no selectable runtime entry
     (for example all pool slots are marked exhausted), fall back to the

@@ -53,7 +53,7 @@ def ensure_workspace(path: Path | None = None) -> Path:
 def resolve_workspace_path(path: str | Path, *, must_exist: bool = False) -> Path:
     """Resolve a user path and optionally assert it exists.
 
-    Relative paths are resolved against the current process CWD because Hermes
+    Relative paths are resolved against the current process CWD because ProteinClaw
     CLI tools already use CWD as workspace context.
     """
     p = Path(path).expanduser()

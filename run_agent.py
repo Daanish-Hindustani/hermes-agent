@@ -312,7 +312,6 @@ _PARALLEL_SAFE_TOOLS = frozenset({
     "session_search",
     "skill_view",
     "skills_list",
-    "vision_analyze",
     "web_extract",
     "web_search",
 })
@@ -1394,7 +1393,7 @@ class AIAgent:
                 if base_url_host_matches(effective_base, "openrouter.ai"):
                     client_kwargs["default_headers"] = {
                         "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-                        "X-OpenRouter-Title": "Hermes Agent",
+                        "X-OpenRouter-Title": "ProteinClaw",
                         "X-OpenRouter-Categories": "productivity,cli-agent",
                     }
                 elif base_url_host_matches(effective_base, "api.routermint.com"):
@@ -1982,7 +1981,7 @@ class AIAgent:
             raise ValueError(
                 f"Model {self.model} has a context window of {_ctx:,} tokens, "
                 f"which is below the minimum {MINIMUM_CONTEXT_LENGTH:,} required "
-                f"by Hermes Agent.  Choose a model with at least "
+                f"by ProteinClaw.  Choose a model with at least "
                 f"{MINIMUM_CONTEXT_LENGTH // 1000}K context, or set "
                 f"model.context_length in config.yaml to override."
             )
@@ -2141,7 +2140,7 @@ class AIAgent:
     
     def _ensure_lmstudio_runtime_loaded(self, config_context_length: Optional[int] = None) -> None:
         """
-        Preload the LM Studio model with at least Hermes' minimum context.
+        Preload the LM Studio model with at least ProteinClaw' minimum context.
         """
         if (self.provider or "").strip().lower() != "lmstudio":
             return
@@ -2564,7 +2563,7 @@ class AIAgent:
                 raise ValueError(
                     f"Auxiliary compression model {aux_model} has a context "
                     f"window of {aux_context:,} tokens, which is below the "
-                    f"minimum {MINIMUM_CONTEXT_LENGTH:,} required by Hermes "
+                    f"minimum {MINIMUM_CONTEXT_LENGTH:,} required by ProteinClaw "
                     f"Agent.  Choose a compression model with at least "
                     f"{MINIMUM_CONTEXT_LENGTH // 1000}K context (set "
                     f"auxiliary.compression.model in config.yaml), or set "
@@ -4761,7 +4760,7 @@ class AIAgent:
             # Fallback to hardcoded identity
             prompt_parts = [DEFAULT_AGENT_IDENTITY]
 
-        # Pointer to the hermes-agent skill + docs for user questions about Hermes itself.
+        # Pointer to the hermes-agent skill + docs for user questions about ProteinClaw itself.
         prompt_parts.append(HERMES_AGENT_HELP_GUIDANCE)
 
         # Tool-aware behavioral guidance: only inject when the tools are loaded
@@ -7723,55 +7722,12 @@ class AIAgent:
         return str(path), path
 
     def _describe_image_for_anthropic_fallback(self, image_url: str, role: str) -> str:
-        cache_key = hashlib.sha256(str(image_url or "").encode("utf-8")).hexdigest()
-        cached = self._anthropic_image_fallback_cache.get(cache_key)
-        if cached:
-            return cached
-
+        """Vision tools removed in protein-design fork. Return a stub note."""
         role_label = {
             "assistant": "assistant",
             "tool": "tool result",
         }.get(role, "user")
-        analysis_prompt = (
-            "Describe everything visible in this image in thorough detail. "
-            "Include any text, code, UI, data, objects, people, layout, colors, "
-            "and any other notable visual information."
-        )
-
-        vision_source = str(image_url or "")
-        cleanup_path: Optional[Path] = None
-        if vision_source.startswith("data:"):
-            vision_source, cleanup_path = self._materialize_data_url_for_vision(vision_source)
-
-        description = ""
-        try:
-            from tools.vision_tools import vision_analyze_tool
-
-            result_json = asyncio.run(
-                vision_analyze_tool(image_url=vision_source, user_prompt=analysis_prompt)
-            )
-            result = json.loads(result_json) if isinstance(result_json, str) else {}
-            description = (result.get("analysis") or "").strip()
-        except Exception as e:
-            description = f"Image analysis failed: {e}"
-        finally:
-            if cleanup_path and cleanup_path.exists():
-                try:
-                    cleanup_path.unlink()
-                except OSError:
-                    pass
-
-        if not description:
-            description = "Image analysis failed."
-
-        note = f"[The {role_label} attached an image. Here's what it contains:\n{description}]"
-        if vision_source and not str(image_url or "").startswith("data:"):
-            note += (
-                f"\n[If you need a closer look, use vision_analyze with image_url: {vision_source}]"
-            )
-
-        self._anthropic_image_fallback_cache[cache_key] = note
-        return note
+        return f"[The {role_label} attached an image, but vision tools are disabled in this build.]"
 
     def _model_supports_vision(self) -> bool:
         """Return True if the active provider+model reports native vision.
@@ -10344,7 +10300,7 @@ class AIAgent:
         # Context is ALWAYS injected into the user message, never the
         # system prompt.  This preserves the prompt cache prefix — the
         # system prompt stays identical across turns so cached tokens
-        # are reused.  The system prompt is Hermes's territory; plugins
+        # are reused.  The system prompt is ProteinClaw's territory; plugins
         # contribute context alongside the user's input.
         #
         # All injected context is ephemeral (not persisted to session DB).
@@ -10606,7 +10562,7 @@ class AIAgent:
             # NOTE: Plugin context from pre_llm_call hooks is injected into the
             # user message (see injection block above), NOT the system prompt.
             # This is intentional — system prompt modifications break the prompt
-            # cache prefix.  The system prompt is reserved for Hermes internals.
+            # cache prefix.  The system prompt is reserved for ProteinClaw internals.
             if effective_system:
                 api_messages = [{"role": "system", "content": effective_system}] + api_messages
 
@@ -11755,7 +11711,7 @@ class AIAgent:
                         print(f"{self.log_prefix}   Troubleshooting:")
                         from hermes_constants import display_hermes_home as _dhh_fn
                         _dhh = _dhh_fn()
-                        print(f"{self.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Hermes-managed OAuth/setup tokens")
+                        print(f"{self.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for ProteinClaw-managed OAuth/setup tokens")
                         print(f"{self.log_prefix}     • Check ANTHROPIC_API_KEY in {_dhh}/.env for API keys or legacy token values")
                         print(f"{self.log_prefix}     • For API keys: verify at https://platform.claude.com/settings/keys")
                         print(f"{self.log_prefix}     • For Claude Code: run 'claude /login' to refresh, then retry")
@@ -11957,7 +11913,7 @@ class AIAgent:
                     # this on the next pass and try fallback or bail.
                     #
                     # IMPORTANT: Nous Portal multiplexes multiple upstream
-                    # providers (DeepSeek, Kimi, MiMo, Hermes).  A 429 can
+                    # providers (DeepSeek, Kimi, MiMo, ProteinClaw).  A 429 can
                     # also mean an UPSTREAM provider is out of capacity
                     # for one specific model -- transient, clears in
                     # seconds, nothing to do with the caller's quota.

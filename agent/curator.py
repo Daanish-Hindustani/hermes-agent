@@ -259,7 +259,7 @@ def apply_automatic_transitions(now: Optional[datetime] = None) -> Dict[str, int
 # ---------------------------------------------------------------------------
 
 CURATOR_REVIEW_PROMPT = (
-    "You are running as Hermes' background skill CURATOR. This is an "
+    "You are running as ProteinClaw' background skill CURATOR. This is an "
     "UMBRELLA-BUILDING consolidation pass, not a passive audit and not a "
     "duplicate-finder.\n\n"
     "The goal of the skill collection is a LIBRARY OF CLASS-LEVEL "

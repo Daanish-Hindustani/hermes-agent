@@ -1,5 +1,5 @@
 """
-Hermes CLI - Unified command-line interface for Hermes Agent.
+ProteinClaw CLI - Unified command-line interface for ProteinClaw.
 
 Provides subcommands for:
 - hermes chat          - Interactive chat (same as ./hermes)

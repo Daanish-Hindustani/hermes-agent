@@ -2,7 +2,7 @@
 name: rcsb-search
 description: Use rcsb_search to find experimental protein structures, inspect metadata, identify chains/ligands, and download target structures for design.
 version: 1.0.0
-author: Hermes Agent
+author: ProteinClaw
 license: MIT
 metadata:
   hermes:

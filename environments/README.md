@@ -1,4 +1,4 @@
-# Hermes-Agent Atropos Environments
+# ProteinClaw-Agent Atropos Environments
 
 This directory contains the integration layer between **hermes-agent's** tool-calling capabilities and the **Atropos** RL training framework. It provides everything needed to run agentic LLMs through multi-turn tool-calling loops, score their output with arbitrary reward functions, and feed results into Atropos for training or evaluation.
 
@@ -114,7 +114,7 @@ Client-side parsers that extract structured `tool_calls` from raw model output t
 Each parser is a standalone reimplementation of the corresponding VLLM parser's `extract_tool_calls()` logic. No VLLM dependency -- only standard library (`re`, `json`, `uuid`) and `openai` types.
 
 Available parsers:
-- `hermes` -- Hermes/ChatML `<tool_call>` XML format
+- `hermes` -- ProteinClaw/ChatML `<tool_call>` XML format
 - `mistral` -- Mistral `[TOOL_CALLS]` format
 - `llama3_json` -- Llama 3 JSON tool calling
 - `qwen` -- Qwen tool calling format

@@ -31,7 +31,7 @@ Usage:
         --openai.model_name YourModel
 
 Built by: github.com/jackx707
-Inspired by: GroceryMind — production Hermes agent doing live web research
+Inspired by: GroceryMind — production ProteinClaw agent doing live web research
              across German grocery stores (firecrawl + hermes-agent)
 """
 

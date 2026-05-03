@@ -1,5 +1,5 @@
 """
-Hermes-Agent Atropos Environments
+ProteinClaw-Agent Atropos Environments
 
 Provides a layered integration between hermes-agent's tool-calling capabilities
 and the Atropos RL training framework.
